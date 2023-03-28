@@ -1,0 +1,15 @@
+name: hisel
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python
+  - ipython
+  - ipykernel
+  - numpy
+  - scipy
+  - scikit-learn
+  - pip
+  - pip:
+    - cython
+
