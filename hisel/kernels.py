@@ -63,11 +63,19 @@ def _run_batch(
         l: float,
         h: Optional[np.ndarray] = None
 ) -> np.ndarray:
-    grams: np.ndarray = _center_gram(featwise(x, l))
+    grams: np.ndarray = _center_gram(featwise(x, l), h)
     d, n, m = grams.shape
     assert n == m
     g: np.ndarray = np.reshape(grams, (d, n*m)).T
     return g
+
+
+def _make_batches(x, batch_size):
+    d, n = x.shape
+    b = min(n, batch_size)
+    num_batches = n // b
+    batches = np.split(x[:, :num_batches * b], num_batches, axis=1)
+    return batches
 
 
 def apply_feature_map(
@@ -77,8 +85,7 @@ def apply_feature_map(
 ) -> np.ndarray:
     d, n = x.shape
     b = min(n, batch_size)
-    num_batches = n // b
-    batches = np.split(x[:, :num_batches * b], num_batches, axis=1)
+    batches = _make_batches(x, batch_size)
     h = _centering_matrix(d, b)
     phi: np.ndarray = np.vstack(
         [_run_batch(
