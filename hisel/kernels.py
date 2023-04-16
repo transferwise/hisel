@@ -99,7 +99,7 @@ def apply_feature_map(
     batches = _make_batches(x, batch_size)
     num_of_batches = len(batches)
     # _can_allocate(d, n, num_of_batches)
-    if no_parallel or num_of_batches < 2:
+    if no_parallel or num_of_batches < 2 or d*n < 100000:
         h = _centering_matrix(d, b)
         partial_phis = [_run_batch(
             batch,

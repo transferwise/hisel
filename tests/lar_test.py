@@ -24,7 +24,6 @@ class TestLar(unittest.TestCase):
         y = x @ beta
         self._test(x, y, a, beta)
 
-    # @unittest.skip
     def test_no_noise(self):
         n = 1000
         d = 10
@@ -68,9 +67,11 @@ class TestLar(unittest.TestCase):
         self._test(x, y, a, beta)
 
     def _test(self, x, y, a, beta):
+        print('\nTesting implementation of least-angle regression in `hisel`')
         active = lar.solve(x, y, a)
         nonactive = list(set(range(x.shape[1])).difference(set(active)))
         if use_pyhsiclasso:
+            print('Using pyHSICLasso.nlars for reconciliation purposes')
             _, _, a_nlar, _, _, _ = nlars.nlars(x, x.T @ y, a, 3)
             self.assertEqual(
                 set(a_nlar),
@@ -88,20 +89,23 @@ class TestLar(unittest.TestCase):
                      f'pyHSICLasso-ordered beta:\n{beta[a_nlar]}\n'
                      )
             )
-        self.assertTrue(
-            np.all(beta[active] >= .0),
-            msg=('hisel has selected variables with negative beta\n'
-                 f'beta:\n{beta}\n'
-                 f'selected beta:\n{beta[active]}\n'
-                 )
-        )
-        self.assertTrue(
-            np.all(beta[nonactive] <= .0),
-            msg=('hisel has not selected variables with positive beta\n'
-                 f'beta:\n{beta}\n'
-                 f'selected beta:\n{beta[active]}\n'
-                 )
-        )
+        if np.all(beta >= -1e-12):
+            # If any of the entries in beta is negative, the
+            # following tests are not guaranteed to pass
+            self.assertTrue(
+                np.all(beta[active] >= .0),
+                msg=('hisel has selected variables with negative beta\n'
+                     f'beta:\n{beta}\n'
+                     f'selected beta:\n{beta[active]}\n'
+                     )
+            )
+            self.assertTrue(
+                np.all(beta[nonactive] <= .0),
+                msg=('hisel has not selected variables with positive beta\n'
+                     f'beta:\n{beta}\n'
+                     f'selected beta:\n{beta[active]}\n'
+                     )
+            )
 
 
 if __name__ == '__main__':

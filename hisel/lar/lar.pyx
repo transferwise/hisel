@@ -60,7 +60,7 @@ def solve(
         gamma[d - num_active: d] = -beta[active] / w
         gamma[d] = c[active[0]] / gw[active[0]]
 
-        gamma[gamma<=1e-16] = np.inf
+        gamma[gamma<=1e-12] = np.inf
         t = np.argmin(gamma)
         beta[active] = beta[active] + gamma[t] * w
 
