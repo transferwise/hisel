@@ -1,0 +1,15 @@
+name: hiselc
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.9
+  - ipython
+  - ipykernel
+  - numpy
+  - scipy
+  - scikit-learn
+  - pip
+  - pip:
+    - cython
+

@@ -46,7 +46,7 @@ class KernelTest(unittest.TestCase):
 
     def test_apply_feature_map(self):
         d: int = np.random.randint(low=2, high=10)
-        n: int = np.random.randint(low=10000, high=20000)
+        n: int = np.random.randint(low=10000, high=15000)
         l: float = np.random.uniform(low=.95, high=5.)
         num_batches = 10
         batch_size = n // num_batches
@@ -58,6 +58,19 @@ class KernelTest(unittest.TestCase):
         self.assertEqual(
             phi.shape,
             (gram_dim, d)
+        )
+        phi_no_parallel = kernels.apply_feature_map(
+            x, l, batch_size, no_parallel=True
+        )
+        self.assertEqual(
+            phi_no_parallel.shape,
+            (gram_dim, d)
+        )
+        self.assertTrue(
+            np.allclose(
+                phi,
+                phi_no_parallel
+            )
         )
 
 
