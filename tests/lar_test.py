@@ -24,7 +24,7 @@ class TestLar(unittest.TestCase):
         y = x @ beta
         self._test(x, y, a, beta)
 
-    @unittest.skip
+    # @unittest.skip
     def test_no_noise(self):
         n = 1000
         d = 10
@@ -76,32 +76,32 @@ class TestLar(unittest.TestCase):
                 set(a_nlar),
                 set(active),
                 msg=('\npyHSICLasso and hisel did not find the same set of features!\n'
-                    f'hisel-selected features: {set(active)}\n'
-                    f'pyHSICLasso-selected features: {set(a_nlar)}\n'
-                    )
-                )
+                     f'hisel-selected features: {set(active)}\n'
+                     f'pyHSICLasso-selected features: {set(a_nlar)}\n'
+                     )
+            )
             self.assertEqual(
                 a_nlar,
                 active,
                 msg=('\npyHSICLasso and hisel did not agree on the order of the features\n'
-                    f'hisel-ordered beta:\n{beta[active]}\n'
-                    f'pyHSICLasso-ordered beta:\n{beta[a_nlar]}\n'
-                    )
+                     f'hisel-ordered beta:\n{beta[active]}\n'
+                     f'pyHSICLasso-ordered beta:\n{beta[a_nlar]}\n'
+                     )
             )
         self.assertTrue(
-                np.all(beta[active] >= .0),
-                msg=('hisel has selected variables with negative beta\n'
-                    f'beta:\n{beta}\n'
-                    f'selected beta:\n{beta[active]}\n'
-                    )
-                )
+            np.all(beta[active] >= .0),
+            msg=('hisel has selected variables with negative beta\n'
+                 f'beta:\n{beta}\n'
+                 f'selected beta:\n{beta[active]}\n'
+                 )
+        )
         self.assertTrue(
-                np.all(beta[nonactive] <= .0),
-                msg=('hisel has not selected variables with positive beta\n'
-                    f'beta:\n{beta}\n'
-                    f'selected beta:\n{beta[active]}\n'
-                    )
-                )
+            np.all(beta[nonactive] <= .0),
+            msg=('hisel has not selected variables with positive beta\n'
+                 f'beta:\n{beta}\n'
+                 f'selected beta:\n{beta[active]}\n'
+                 )
+        )
 
 
 if __name__ == '__main__':

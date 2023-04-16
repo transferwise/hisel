@@ -42,7 +42,7 @@ def solve(
 
     # first step
     j = np.argmax(c)
-    maxc = c[j] #  np.amax(c)
+    maxc = np.amax(c) # c[j] 
     active.append(j)
     indices.remove(j)
     num_active = 1
@@ -76,7 +76,7 @@ def solve(
         gb = xx @ beta
         c = g - gb
         j = np.argmax(c[indices])
-        maxc = c[indices][j] # np.amax(c[indices])
+        maxc = np.amax(c[indices])  # c[indices][j] 
         if lasso_cond == 0:
             ij = indices[j]
             active.append(ij)

@@ -1,4 +1,5 @@
 from typing import Optional
+from joblib import Parallel, delayed
 import numpy as np
 
 
@@ -78,20 +79,36 @@ def _make_batches(x, batch_size):
     return batches
 
 
+def _can_allocate(d: int, n: int, num_batches: int):
+    try:
+        np.zeros((num_batches, d, n, n))
+    except np.core._exceptions._ArrayMemoryError as e:
+        print('Number of features and number of samples are too big to allocate the feature map.'
+              'Reduce the number of samples and try again')
+        raise(e)
+
+
 def apply_feature_map(
         x: np.ndarray,
         l: float,
         batch_size: int,
+        no_parallel: bool = False
 ) -> np.ndarray:
     d, n = x.shape
     b = min(n, batch_size)
     batches = _make_batches(x, batch_size)
-    h = _centering_matrix(d, b)
-    phi: np.ndarray = np.vstack(
-        [_run_batch(
+    num_of_batches = len(batches)
+    # _can_allocate(d, n, num_of_batches)
+    if no_parallel or num_of_batches < 2:
+        h = _centering_matrix(d, b)
+        partial_phis = [_run_batch(
             batch,
             l,
             h
         ) for batch in batches]
-    )
+    else:
+        partial_phis = Parallel(n_jobs=-1)([
+            delayed(_run_batch)(batch, l) for batch in batches
+        ])
+    phi: np.ndarray = np.vstack(partial_phis)
     return phi
