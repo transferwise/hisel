@@ -26,6 +26,7 @@ class SelectorTest(unittest.TestCase):
         self._test_selection(add_noise=True)
 
     def _test_selection(self, add_noise: bool = False):
+        print('\nTest selection of features in a linear transformation setting')
         d: int = np.random.randint(low=10, high=20)
         n: int = np.random.randint(low=10000, high=20000)
         n_features: int = d // 3
@@ -35,6 +36,7 @@ class SelectorTest(unittest.TestCase):
         if add_noise:
             y += .1 * np.std(y) * np.random.uniform(size=y.shape)
         if use_pyhsiclasso:
+            print('Using pyHSICLasso for reconciliation purposes')
             pyhsiclasso_selection = pyhsiclasso(
                 x, y, n_features, 500)
             self.assertEqual(
