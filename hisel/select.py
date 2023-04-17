@@ -1,7 +1,8 @@
 # API
 from typing import List
 import numpy as np
-from hisel import lar, kernels
+import pandas as pd
+from hisel import lar, kernels, hsic
 
 
 class Selector:
@@ -20,6 +21,19 @@ class Selector:
         self.x = np.array(x, copy=True)
         self.y = np.array(y, copy=True)
 
+    def lasso_path(self):
+        if not hasattr(self, 'lassopaths'):
+            print(
+                'You need to call the method `select` before accessing the lasso paths of the latest selection')
+            raise ValueError()
+        paths = np.vstack(
+            [np.expand_dims(p, axis=0) for p in self.lassopaths]
+        )
+        path = np.mean(paths, axis=0)
+        df: pd.DataFrame = pd.DataFrame(
+            path, columns=[f'f{f}' for f in range(path.shape[1])])
+        return df
+
     def projection_matrix(self,
                           number_of_features: int,
                           batch_size: int = 1000,
@@ -27,19 +41,24 @@ class Selector:
                           number_of_epochs: int = 1
                           ) -> np.ndarray:
         p: np.ndarray = np.zeros((number_of_features, self.x.shape[1]))
+        features: List[int]
+        lassopaths: List[np.ndarray] = []
+        lassopath: np.ndarray
         x_, y_ = preprocess(self.x, self.y, 1, standard=True)
         xs = _make_batches(x_, batch_size)
         ys = _make_batches(y_, batch_size)
         for x, y in zip(xs, ys):
             x, y = preprocess(x, y, number_of_epochs, standard=False)
-            features: List[int] = _run_numpy(
+            features, lassopath = _run_numpy(
                 x, y, number_of_features, minibatch_size)
             p += _to_projection_matrix(
                 features,
                 self.x.shape[1],
                 number_of_features,
             )
+            lassopaths.append(lassopath)
         p /= len(xs)
+        self.lassopaths = lassopaths
         return p
 
     def select(self,
@@ -56,6 +75,27 @@ class Selector:
         )
         features = _to_feature_list(p)
         return features
+
+    def regularization_curve(self,
+                             batch_size: int = 1000,
+                             minibatch_size: int = 200,
+                             number_of_epochs: int = 1
+                             ):
+        number_of_features = self.x.shape[1] - 1
+        features = self.select(
+            number_of_features,
+            batch_size,
+            minibatch_size,
+            number_of_epochs
+        )
+        path = self.lasso_path()
+        curve = np.cumsum(np.sort(path.iloc[-1, :])[::-1])
+        self.ordered_features = sorted(
+            features,
+            key=lambda a: path.iloc[-1, a],
+            reverse=True
+        )
+        return curve
 
 
 def _make_batches(x, batch_size):
@@ -128,5 +168,5 @@ def _run_numpy(
         y.T, ly, batch_size, is_multivariate=True)
     assert y_gram.shape == (gram_dim, 1)
     assert not np.any(np.isnan(y_gram))
-    features = lar.solve(x_gram, y_gram, number_of_features)
-    return features
+    features, lassopath = lar.solve(x_gram, y_gram, number_of_features)
+    return features, lassopath

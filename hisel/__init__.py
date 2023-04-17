@@ -1,4 +1,4 @@
-from . import kernels, select  # NOQA
+from . import kernels, select, hsic  # NOQA
 try:
     import torch
     from . import torchkernels
