@@ -68,7 +68,7 @@ class TestLar(unittest.TestCase):
 
     def _test(self, x, y, a, beta):
         print('\nTesting implementation of least-angle regression in `hisel`')
-        active = lar.solve(x, y, a)
+        active, _ = lar.solve(x, y, a)
         nonactive = list(set(range(x.shape[1])).difference(set(active)))
         if use_pyhsiclasso:
             print('Using pyHSICLasso.nlars for reconciliation purposes')

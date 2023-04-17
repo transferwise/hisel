@@ -4,6 +4,7 @@
 # Least angle regression
 import numpy as np
 cimport numpy as np
+from scipy.sparse import lil_matrix
 
 DTYPEf = np.float64 
 DTYPEi = np.int64
@@ -40,7 +41,10 @@ def solve(
     cdef int num_active = 0
     cdef int lasso_cond 
 
+    path = lil_matrix((3*d, d))
+
     # first step
+    k = 0 # index for path
     j = np.argmax(c)
     maxc = np.amax(c) # c[j] 
     active.append(j)
@@ -77,6 +81,7 @@ def solve(
         c = g - gb
         j = np.argmax(c[indices])
         maxc = np.amax(c[indices])  # c[indices][j] 
+        path[k, :] = beta
         if lasso_cond == 0:
             ij = indices[j]
             active.append(ij)
@@ -84,16 +89,15 @@ def solve(
 
         # update number of active variables
         num_active = len(active)
+        k+=1
 
     if len(active) > dim_z:
         active.pop()
 
 
-    # Sort in decreasing order of importance
-    betas = np.squeeze(beta)
-    res = sorted(active, key=lambda a: betas[a], reverse=True)
+    lassopath = path[:k, :].toarray()
 
-    return res
+    return active, lassopath
 
 
 
