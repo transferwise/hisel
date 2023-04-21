@@ -65,6 +65,7 @@ jobs:
       - name: Run hisel tests
         run: |
           source hisel-env/bin/activate
+          python -c "import sys; print(f'\n'.join(sys.path))"
           pytest tests/kernel_test.py --disable-warnings
           pytest tests/torchkernel_test.py --disable-warnings
           pytest tests/lar_test.py --disable-warnings
