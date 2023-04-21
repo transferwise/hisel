@@ -1,0 +1,79 @@
+name: Run tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  hisel_tests:
+    name: "hisel tests"
+    runs-on:
+      - self-hosted
+      - production
+      - medium
+    container: docker.tw.ee/actions_python3
+
+    steps:
+      # GHA leaves mess behind. We need to clear those or our we end up having unexpected behaviours.
+      # REMOVE ME when A&T uses ephemeral runners
+      - name: Clear dirty runner
+        # Clear everything, both home and working directory
+        run: |
+          rm -rfv ~/* ./* || true
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Retrieve cache
+        id: cache-hisel-env
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-requirements-${{ hashFiles('requirements-test.txt') }}
+          path: hisel-env
+
+      - name: Installing hisel dependencies
+        if: steps.cache-hisel-env.outputs.cache-hit != 'true'
+        run: |
+          virtualenv hisel-env
+          source hisel-env/bin/activate
+          python3 -m pip install --upgrade pip wheel setuptools
+          python3 -m pip install -r requirements-test.txt
+          python3 setup.py build_ext --inplace
+
+      - name: Run hisel tests
+        run: |
+          source hisel-env/bin/activate
+          pytest tests/kernel_test.py --disable-warnings
+          pytest tests/torchkernel_test.py --disable-warnings
+          pytest tests/lar_test.py --disable-warnings
+          pytest tests/select_test.py --disable-warnings
+
+  run_trufflehog:
+    name: "Run trufflehog to catch credential leaks"
+    runs-on:
+      - self-hosted
+      - production
+      - medium
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug

@@ -1,0 +1,5 @@
+numpy>=1.23.0
+pandas
+scikit-learn
+scipy
+cython

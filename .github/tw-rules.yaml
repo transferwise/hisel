@@ -1,0 +1,21 @@
+runChecks: true
+
+actions:
+  branch-protection-settings:
+    branches:
+      - name: trunk
+        numRequiredReviews: 1
+        requireBranchUpToDate: true
+        requireConversationResolution: true
+        requireLinearHistory: true
+        checks:
+          - name: hisel tests
+            appId: github-actions
+            type: tests
+          - name: Run trufflehog to catch credential leaks
+            appId: github-actions
+            type: tests
+
+  repo-settings:
+    deleteBranchOnMerge: true
+ 

@@ -1,0 +1,42 @@
+name: Build and publish
+
+on:
+  release:
+    types:
+      - released
+
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Upload to PyPi
+    runs-on:
+      - self-hosted
+      - production
+      - medium
+    container: docker.tw.ee/actions_python3_9
+
+    steps:
+      - name: Clear dirty runner
+        # Clear everything, both home and working directory
+        run: |
+          rm -rfv ~/* ./* || true
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          python -m pip install poetry
+      - name: Build distributable
+        run: |
+          poetry build
+      - name: Add Arti PyPi repository to Poetry
+        run: |
+          poetry config repositories.internalpypi https://arti.tw.ee/artifactory/api/pypi/pypi-internal
+      - name: Publish package to PyPi
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          poetry publish -r internalpypi --username $ARTIFACTORY_USER --password $ARTIFACTORY_PASSWORD
+
