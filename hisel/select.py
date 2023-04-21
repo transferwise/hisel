@@ -2,8 +2,16 @@
 from typing import List, Optional
 import numpy as np
 import pandas as pd
-import torch
 from hisel import lar, kernels, torchkernels
+TORCH_AVAILABLE = True
+try:
+    from hisel import torch
+except (ImportError, ModuleNotFoundError):
+    TORCH_AVAILABLE = False
+try:
+    import torch
+except (ImportError, ModuleNotFoundError):
+    TORCH_AVAILABLE = False
 
 
 class Selector:
@@ -189,7 +197,7 @@ def _run(
     ly = np.sqrt(dy)
     x_gram: np.ndarray
     y_gram: np.ndarray
-    if device is not None:
+    if TORCH_AVAILABLE and device is not None:
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
         x = x.to(device)
