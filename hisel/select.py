@@ -18,6 +18,7 @@ class Selector:
         print(f'Number of y samples: {ny}')
         print('\n')
         assert nx == ny, 'number of samples in x and in y must be equal'
+        self.total_number_of_features = x.shape[1]
         self.x = np.array(x, copy=True)
         self.y = np.array(y, copy=True)
 
@@ -40,7 +41,8 @@ class Selector:
                           minibatch_size: int = 200,
                           number_of_epochs: int = 1
                           ) -> np.ndarray:
-        p: np.ndarray = np.zeros((number_of_features, self.x.shape[1]))
+        p: np.ndarray = np.zeros(
+            (number_of_features, self.total_number_of_features))
         features: List[int]
         lassopaths: List[np.ndarray] = []
         lassopath: np.ndarray
@@ -53,7 +55,7 @@ class Selector:
                 x, y, number_of_features, minibatch_size)
             p += _to_projection_matrix(
                 features,
-                self.x.shape[1],
+                self.total_number_of_features,
                 number_of_features,
             )
             lassopaths.append(lassopath)
@@ -81,7 +83,7 @@ class Selector:
                              minibatch_size: int = 200,
                              number_of_epochs: int = 1
                              ):
-        number_of_features = self.x.shape[1] - 1
+        number_of_features = self.total_number_of_features - 1
         features = self.select(
             number_of_features,
             batch_size,
@@ -96,6 +98,22 @@ class Selector:
             reverse=True
         )
         return curve
+
+    def autoselect(self,
+                   batch_size: int = 1000,
+                   minibatch_size: int = 200,
+                   number_of_epochs: int = 1,
+                   threshold: float = .004
+                   ):
+        curve = self.regularization_curve(
+            batch_size=batch_size,
+            minibatch_size=minibatch_size,
+            number_of_epochs=number_of_epochs
+        )
+        betas = np.diff(curve, prepend=.0)
+        betas /= betas[0]
+        number_of_features = sum(betas > threshold)
+        return self.ordered_features[:number_of_features]
 
 
 def _make_batches(x, batch_size):

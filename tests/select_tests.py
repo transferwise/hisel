@@ -89,6 +89,25 @@ class SelectorTest(unittest.TestCase):
                  )
         )
 
+        # Test autoselection - We do not provide the number of features that should be selected
+        autoselection = selector.autoselect(
+            batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=5e-3)
+        self.assertEqual(
+            len(autoselection),
+            len(features),
+        )
+        self.assertEqual(
+            len(autoselection),
+            n_features,
+        )
+        self.assertEqual(
+            set(autoselection),
+            set(features),
+            msg=(f'Expected features: {features}',
+                 f'Auto-Selected features: {autoselection}'
+                 )
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
