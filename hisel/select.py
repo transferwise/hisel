@@ -1,8 +1,9 @@
 # API
-from typing import List
+from typing import List, Optional
 import numpy as np
 import pandas as pd
-from hisel import lar, kernels, hsic
+import torch
+from hisel import lar, kernels, torchkernels
 
 
 class Selector:
@@ -39,7 +40,8 @@ class Selector:
                           number_of_features: int,
                           batch_size: int = 1000,
                           minibatch_size: int = 200,
-                          number_of_epochs: int = 1
+                          number_of_epochs: int = 1,
+                          device: Optional[str] = None,
                           ) -> np.ndarray:
         p: np.ndarray = np.zeros(
             (number_of_features, self.total_number_of_features))
@@ -51,8 +53,8 @@ class Selector:
         ys = _make_batches(y_, batch_size)
         for x, y in zip(xs, ys):
             x, y = preprocess(x, y, number_of_epochs, standard=False)
-            features, lassopath = _run_numpy(
-                x, y, number_of_features, minibatch_size)
+            features, lassopath = _run(
+                x, y, number_of_features, minibatch_size, device)
             p += _to_projection_matrix(
                 features,
                 self.total_number_of_features,
@@ -67,13 +69,15 @@ class Selector:
                number_of_features: int,
                batch_size: int = 1000,
                minibatch_size: int = 200,
-               number_of_epochs: int = 1
+               number_of_epochs: int = 1,
+               device: Optional[str] = None,
                ) -> List[int]:
         p = self.projection_matrix(
             number_of_features=number_of_features,
             batch_size=batch_size,
             minibatch_size=minibatch_size,
             number_of_epochs=number_of_epochs,
+            device=device,
         )
         features = _to_feature_list(p)
         return features
@@ -81,14 +85,16 @@ class Selector:
     def regularization_curve(self,
                              batch_size: int = 1000,
                              minibatch_size: int = 200,
-                             number_of_epochs: int = 1
+                             number_of_epochs: int = 1,
+                             device: Optional[str] = None,
                              ):
         number_of_features = self.total_number_of_features - 1
         features = self.select(
             number_of_features,
             batch_size,
             minibatch_size,
-            number_of_epochs
+            number_of_epochs,
+            device,
         )
         path = self.lasso_path()
         curve = np.cumsum(np.sort(path.iloc[-1, :])[::-1])
@@ -103,12 +109,14 @@ class Selector:
                    batch_size: int = 1000,
                    minibatch_size: int = 200,
                    number_of_epochs: int = 1,
-                   threshold: float = .004
+                   threshold: float = .004,
+                   device: Optional[str] = None,
                    ):
         curve = self.regularization_curve(
             batch_size=batch_size,
             minibatch_size=minibatch_size,
-            number_of_epochs=number_of_epochs
+            number_of_epochs=number_of_epochs,
+            device=device,
         )
         betas = np.diff(curve, prepend=.0)
         betas /= betas[0]
@@ -165,11 +173,12 @@ def _to_feature_list(p: np.ndarray) -> List[int]:
     return features
 
 
-def _run_numpy(
+def _run(
         x: np.ndarray,
         y: np.ndarray,
         number_of_features: int,
-        batch_size: int = 500
+        batch_size: int = 500,
+        device: Optional[str] = None,
 ):
     nx, dx = x.shape
     ny, dy = y.shape
@@ -178,12 +187,26 @@ def _run_numpy(
     gram_dim: int = num_batches * batch_size**2
     lx = 1.
     ly = np.sqrt(dy)
-    x_gram: np.ndarray = kernels.apply_feature_map(
-        x.T, lx, batch_size, is_multivariate=False)
+    x_gram: np.ndarray
+    y_gram: np.ndarray
+    if device is not None:
+        x = torch.from_numpy(x)
+        y = torch.from_numpy(y)
+        x = x.to(device)
+        y = y.to(device)
+        xx = torchkernels.apply_feature_map(
+            x.T, lx, batch_size, is_multivariate=False)
+        yy = torchkernels.apply_feature_map(
+            y.T, ly, batch_size, is_multivariate=True)
+        x_gram = xx.detach().cpu().numpy()
+        y_gram = yy.detach().cpu().numpy()
+    else:
+        x_gram = kernels.apply_feature_map(
+            x.T, lx, batch_size, is_multivariate=False)
+        y_gram = kernels.apply_feature_map(
+            y.T, ly, batch_size, is_multivariate=True)
     assert x_gram.shape == (gram_dim, dx)
     assert not np.any(np.isnan(x_gram))
-    y_gram: np.ndarray = kernels.apply_feature_map(
-        y.T, ly, batch_size, is_multivariate=True)
     assert y_gram.shape == (gram_dim, 1)
     assert not np.any(np.isnan(y_gram))
     features, lassopath = lar.solve(x_gram, y_gram, number_of_features)

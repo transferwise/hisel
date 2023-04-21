@@ -1,3 +1,5 @@
+from typing import Optional
+import torch
 import unittest
 import numpy as np
 from scipy.stats import special_ortho_group
@@ -9,6 +11,8 @@ try:
     import pyHSICLasso
 except (ModuleNotFoundError, ImportError):
     use_pyhsiclasso = False
+
+SKIP_CUDA = False if torch.cuda.is_available() else True
 
 
 def pyhsiclasso(x, y, n_features: int, batch_size=500):
@@ -32,7 +36,25 @@ class SelectorTest(unittest.TestCase):
     def test_selection_with_noise_with_transform(self):
         self._test_selection(add_noise=True, apply_transform=True)
 
-    def _test_selection(self, add_noise: bool = False, apply_transform: bool = False):
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_selection_no_noise(self):
+        self._test_selection(add_noise=False, device='cuda')
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_selection_with_noise(self):
+        self._test_selection(add_noise=True, device='cuda')
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_selection_no_noise_with_transform(self):
+        self._test_selection(
+            add_noise=False, device='cuda', apply_transform=True)
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_selection_with_noise_with_transform(self):
+        self._test_selection(add_noise=True, device='cuda',
+                             apply_transform=True)
+
+    def _test_selection(self, add_noise: bool = False, apply_transform: bool = False, device: Optional[str] = None):
         print('\nTest selection of features in a linear transformation setting')
         d: int = np.random.randint(low=10, high=20)
         n: int = np.random.randint(low=10000, high=20000)
@@ -72,7 +94,7 @@ class SelectorTest(unittest.TestCase):
 
         selector = Selector(x, y)
         selection = selector.select(
-            n_features, batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3)
+            n_features, batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, device=device)
         self.assertEqual(
             len(selection),
             len(features),
@@ -91,7 +113,7 @@ class SelectorTest(unittest.TestCase):
 
         # Test autoselection - We do not provide the number of features that should be selected
         autoselection = selector.autoselect(
-            batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=5e-3)
+            batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=5e-3, device=device)
         self.assertEqual(
             len(autoselection),
             len(features),

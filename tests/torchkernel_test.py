@@ -57,6 +57,26 @@ class KernelTest(unittest.TestCase):
             )
         )
 
+    def test_torch_v_numpy_multivariate_phi(self):
+        d: int = np.random.randint(low=2, high=10)
+        n: int = np.random.randint(low=1000, high=2000)
+        l: float = np.random.uniform(low=.95, high=5.)
+
+        x = np.random.uniform(size=(d, n))
+        x_torch = torch.from_numpy(x)
+
+        g = kernels.multivariate_phi(x, l)
+        _g_torch = torchkernels.multivariate_phi(x_torch, l)
+        g_torch = _g_torch.detach().cpu().numpy()
+        self.assertEqual(
+            g.shape,
+            g_torch.shape
+        )
+        self.assertTrue(
+            np.allclose(
+                g, g_torch
+            ))
+
     def test_centering_matrix(self):
         d: int = 1
         n: int = np.random.randint(low=1000, high=2000)
@@ -129,6 +149,37 @@ class KernelTest(unittest.TestCase):
         self.assertEqual(
             phi_torch.shape,
             (gram_dim, d)
+        )
+        self.assertTrue(
+            np.allclose(
+                phi,
+                phi_torch,
+            )
+        )
+
+    def test_torch_v_numpy_multivariate_apply_feature_map(self):
+        d: int = np.random.randint(low=2, high=10)
+        n: int = np.random.randint(low=10000, high=20000)
+        l: float = np.random.uniform(low=.95, high=5.)
+        num_batches = 10
+        batch_size = n // num_batches
+        x = np.random.uniform(size=(d, n))
+        x_torch = torch.from_numpy(x)
+        assert x.shape == x_torch.size()
+        phi: np.ndarray = kernels.apply_feature_map(
+            x, l, batch_size, is_multivariate=True
+        )
+        phi_torch: np.ndarray = torchkernels.apply_feature_map(
+            x_torch, l, batch_size, is_multivariate=True
+        )
+        gram_dim: int = num_batches * batch_size**2
+        self.assertEqual(
+            phi.shape,
+            (gram_dim, 1)
+        )
+        self.assertEqual(
+            phi_torch.shape,
+            (gram_dim, 1)
         )
         self.assertTrue(
             np.allclose(

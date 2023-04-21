@@ -34,6 +34,16 @@ def multivariate(
     return gram
 
 
+def multivariate_phi(
+        x: Tensor,
+        l: float
+) -> Tensor:
+    gram = multivariate(x, x, l)
+    n, m = gram.size()
+    gram = gram.reshape(1, n, m)
+    return gram
+
+
 def _centering_matrix(d: int, n: int, dtype=torch.float64) -> Tensor:
     id_ = torch.eye(n, dtype=dtype)
     ids = id_.reshape(1, n, n).expand(d, -1, -1)
@@ -54,9 +64,11 @@ def _center_gram(
 def _run_batch(
         x: Tensor,
         l: float,
-        h: Optional[Tensor] = None
+        h: Optional[Tensor] = None,
+        is_multivariate: bool = False,
 ) -> Tensor:
-    grams: Tensor = _center_gram(featwise(x, l), h)
+    phi = multivariate_phi if is_multivariate else featwise
+    grams: Tensor = _center_gram(phi(x, l), h)
     d, n, m = grams.size()
     assert n == m
     g: Tensor = grams.reshape(d, n*m).T
@@ -75,17 +87,24 @@ def apply_feature_map(
         x: Tensor,
         l: float,
         batch_size: int,
+        is_multivariate: bool = False,
+        no_parallel: bool = True  # Only kept to uniform notation with numpy kernels
 ) -> Tensor:
     d, n = x.size()
     b = min(n, batch_size)
     batches = _make_batches(x, batch_size)
-    h = _centering_matrix(d, b, x.dtype)
+    h: Tensor
+    if not is_multivariate:
+        h = _centering_matrix(d, b, x.dtype)
+    else:
+        h = _centering_matrix(1, b, x.dtype)
     h = h.to(x.device)
     phi: Tensor = torch.vstack(
         [_run_batch(
             batch,
             l,
-            h
+            h,
+            is_multivariate
         ) for batch in batches]
     )
     return phi
