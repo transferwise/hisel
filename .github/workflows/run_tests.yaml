@@ -47,6 +47,12 @@ jobs:
           sudo apt install gcc -y
         shell: bash
 
+      - name: Install g++
+        run: |
+          sudo apt update
+          sudo apt-get  install g++ -y
+        shell: bash
+
       - name: Installing hisel dependencies
         if: steps.cache-hisel-env.outputs.cache-hit != 'true'
         run: |
