@@ -41,6 +41,12 @@ jobs:
           key: ${{ runner.os }}-requirements-${{ hashFiles('requirements-test.txt') }}
           path: hisel-env
 
+      - name: Install gcc
+        run: |
+          sudo apt update
+          sudo apt install gcc
+        shell: bash
+
       - name: Installing hisel dependencies
         if: steps.cache-hisel-env.outputs.cache-hit != 'true'
         run: |
