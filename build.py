@@ -1,9 +1,3 @@
-# setup.py
-#
-# from setuptools import setup
-#
-# setup()
-
 import os
 from distutils.core import setup
 from distutils.extension import Extension
@@ -20,10 +14,9 @@ extensions = [
     )
 ]
 
-setup(
-    name='hisel',
-    ext_modules=extensions,
-    cmdclass={'build_ext': build_ext},
-    script_args=['build_ext'],
-    options={'build_ext': {'inplace': True, 'force': True}},
-)
+
+def build(setup_kwargs):
+    setup_kwargs.update({
+        'ext_modules': extensions,
+        cmdclass={'build_ext': build_ext},
+    })
