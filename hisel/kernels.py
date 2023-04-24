@@ -62,7 +62,6 @@ def _delta_featwise(
     assert x.ndim == 2
     d, n = x.shape
     assert x.dtype == int
-    counters = [np.bincount(x[i, :]) for i in range(d)]
     z = np.expand_dims(x, axis=2)
     s = np.expand_dims(x, axis=1)
     s2 = np.repeat(
