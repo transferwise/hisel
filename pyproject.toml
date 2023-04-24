@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "hisel"
+version = "0.1.0"
+description = ""
+authors = ["claudio <claudio.bellani@transferwise.com>"]
+readme = "README.md"
+build = "build.py"
+
+[tool.poetry.dependencies]
+python = "<3.12,>=3.8"
+numpy = ">=1.23"
+pandas = ">=2.0"
+scipy = ">=1.10"
+scikit-learn = ">=1.2.0"
+cython = ">=0.29"
+
+
+[build-system]
+requires = ["poetry-core", "cython", "numpy", "setuptools", "wheel"]
+build-backend = "poetry.core.masonry.api"

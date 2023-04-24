@@ -1,11 +1,4 @@
-# setup.py
-#
-# from setuptools import setup
-#
-# setup()
-
 import os
-import setuptools
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
@@ -21,11 +14,10 @@ extensions = [
     )
 ]
 
-setup(
-    name='hisel',
-    ext_modules=extensions,
-    cmdclass={'build_ext': build_ext},
-    script_args=['build_ext'],
-    options={'build_ext': {'inplace': True, 'force': True}},
-    packages=setuptools.find_packages(),
-)
+
+def build(setup_kwargs):
+    print('Adding extensions:\n{extensions}\n')
+    setup_kwargs.update({
+        'ext_modules': extensions,
+        'cmdclass': {'build_ext': build_ext},
+    })

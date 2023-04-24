@@ -1,5 +1,4 @@
 from typing import Optional
-import torch
 import unittest
 import numpy as np
 from scipy.stats import special_ortho_group
@@ -12,7 +11,11 @@ try:
 except (ModuleNotFoundError, ImportError):
     use_pyhsiclasso = False
 
-SKIP_CUDA = False if torch.cuda.is_available() else True
+try:
+    import torch
+    SKIP_CUDA = False if torch.cuda.is_available() else True
+except (ModuleNotFoundError, ImportError):
+    SKIP_CUDA = True
 
 
 def pyhsiclasso(x, y, n_features: int, batch_size=500):
