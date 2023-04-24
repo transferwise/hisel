@@ -69,11 +69,12 @@ class TestLar(unittest.TestCase):
     def _test(self, x, y, a, beta):
         print('\nTesting implementation of least-angle regression in `hisel`')
         active, path = lar.solve(x, y, a)
-        active = sorted(
-            active,
-            key=lambda a: path[-1, a],
-            reverse=True
-        )
+        if path.ndim == 2 and path.shape[0] >= 1:
+            active = sorted(
+                active,
+                key=lambda a: path[-1, a],
+                reverse=True
+            )
         nonactive = list(set(range(x.shape[1])).difference(set(active)))
         if use_pyhsiclasso:
             print('Using pyHSICLasso.nlars for reconciliation purposes')
