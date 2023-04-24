@@ -34,13 +34,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Retrieve cache
-        id: cache-hisel-env
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-requirements-${{ hashFiles('requirements-test.txt') }}
-          path: hisel-env
-
       - name: Install gcc
         run: |
           sudo apt update
@@ -54,7 +47,6 @@ jobs:
         shell: bash
 
       - name: Installing hisel dependencies
-        if: steps.cache-hisel-env.outputs.cache-hit != 'true'
         run: |
           virtualenv hisel-env
           source hisel-env/bin/activate
