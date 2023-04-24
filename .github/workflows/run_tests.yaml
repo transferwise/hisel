@@ -52,12 +52,10 @@ jobs:
           source hisel-env/bin/activate
           python3 -m pip install --upgrade pip wheel setuptools
           python3 -m pip install -r requirements-test.txt
-          python3 setup.py build_ext --inplace
 
       - name: Run hisel tests
         run: |
           source hisel-env/bin/activate
-          python -c "import sys; print(f'\n'.join(sys.path))"
           pytest tests/kernel_test.py --disable-warnings
           pytest tests/torchkernel_test.py --disable-warnings
           pytest tests/lar_test.py --disable-warnings
