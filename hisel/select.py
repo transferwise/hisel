@@ -2,10 +2,10 @@
 from typing import List, Optional
 import numpy as np
 import pandas as pd
-from hisel import lar, kernels, torchkernels
+from hisel import lar, kernels
 TORCH_AVAILABLE = True
 try:
-    from hisel import torch
+    from hisel import torchkernels
 except (ImportError, ModuleNotFoundError):
     TORCH_AVAILABLE = False
 try:
