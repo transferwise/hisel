@@ -15,6 +15,7 @@ except (ModuleNotFoundError, ImportError):
 
 
 class KernelTest(unittest.TestCase):
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_torch_v_numpy_featwise(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -34,6 +35,7 @@ class KernelTest(unittest.TestCase):
             )
         )
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_rbf(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -62,6 +64,7 @@ class KernelTest(unittest.TestCase):
             )
         )
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_torch_v_numpy_multivariate_phi(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -82,6 +85,7 @@ class KernelTest(unittest.TestCase):
                 g, g_torch
             ))
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_centering_matrix(self):
         d: int = 1
         n: int = np.random.randint(low=1000, high=2000)
@@ -98,6 +102,7 @@ class KernelTest(unittest.TestCase):
             )
         )
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_torch_v_numpy_centering_matrix(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -112,6 +117,7 @@ class KernelTest(unittest.TestCase):
             np.allclose(h, h_torch)
         )
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_torch_v_numpy_make_batches(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=10000, high=20000)
@@ -131,6 +137,7 @@ class KernelTest(unittest.TestCase):
                 bt.size()
             )
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_torch_v_numpy_apply_feature_map(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=10000, high=20000)
@@ -162,6 +169,7 @@ class KernelTest(unittest.TestCase):
             )
         )
 
+    @unittest.skipIf(SKIP, 'torch not available')
     def test_torch_v_numpy_multivariate_apply_feature_map(self):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=10000, high=20000)
