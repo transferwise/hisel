@@ -2,11 +2,16 @@ import datetime
 import unittest
 import numpy as np
 from sklearn.gaussian_process.kernels import RBF
-from hisel import kernels, torchkernels
-import torch
-from torch import Tensor
-
-SKIP_CUDA = not torch.cuda.is_available()
+from hisel import kernels
+SKIP = False
+SKIP_CUDA = True
+try:
+    import torch
+    from torch import Tensor
+    from hisel import torchkernels
+    SKIP_CUDA = not torch.cuda.is_available()
+except (ModuleNotFoundError, ImportError):
+    SKIP = True
 
 
 class KernelTest(unittest.TestCase):
@@ -247,4 +252,7 @@ class KernelTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    if SKIP:
+        print('Torch could not be imported. I am skipping the tests')
+    else:
+        unittest.main()
