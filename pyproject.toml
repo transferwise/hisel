@@ -16,5 +16,5 @@ cython = ">=0.29"
 
 
 [build-system]
-requires = ["poetry-core", "cython", "numpy"]
+requires = ["poetry-core", "cython", "numpy", "setuptools", "wheel"]
 build-backend = "poetry.core.masonry.api"

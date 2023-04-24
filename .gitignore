@@ -1,6 +1,7 @@
 *.so
 *.cpp
 *.pyc
+*.swp
 __pycache__
 build
 .ipynb_checkpoints
