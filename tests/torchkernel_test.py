@@ -323,7 +323,7 @@ class KernelTest(unittest.TestCase):
         d: int = np.random.randint(low=15, high=20)
         n: int = np.random.randint(low=50000, high=90000)
         l: float = np.random.uniform(low=.95, high=5.)
-        num_batches = 250
+        num_batches = 300
         batch_size = n // num_batches
 
         print(f'number of features: {d}')
