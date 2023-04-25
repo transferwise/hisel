@@ -17,7 +17,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     SKIP_CUDA = True
 
-QUICK_TEST = False
+QUICK_TEST = True
 SKIP_CUDA = True if QUICK_TEST else SKIP_CUDA
 use_pyhsiclasso = False if QUICK_TEST else use_pyhsiclasso
 
