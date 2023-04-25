@@ -20,7 +20,7 @@ jobs:
     runs-on:
       - self-hosted
       - production
-      - medium
+      - large
     container: docker.tw.ee/actions_python3
 
     steps:
