@@ -7,6 +7,8 @@ import datetime
 
 pyhsiclasso_recon = True
 
+QUICK_TEST = True
+
 
 class KernelTest(unittest.TestCase):
 
@@ -225,12 +227,12 @@ class KernelTest(unittest.TestCase):
             )
         )
 
-    # @unittest.skip
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_apply_rbf_feature_map(self):
         kernel_type = kernels.KernelType.RBF
         self._test_apply_feature_map(kernel_type)
 
-    # @unittest.skip
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_apply_delta_feature_map(self):
         kernel_type = kernels.KernelType.DELTA
         self._test_apply_feature_map(kernel_type)

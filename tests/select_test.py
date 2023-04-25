@@ -17,6 +17,10 @@ try:
 except (ModuleNotFoundError, ImportError):
     SKIP_CUDA = True
 
+QUICK_TEST = True
+SKIP_CUDA = True if QUICK_TEST else SKIP_CUDA
+use_pyhsiclasso = False if QUICK_TEST else use_pyhsiclasso
+
 
 def pyhsiclasso(x, y, yfeattype: FeatureType, n_features: int, batch_size=500):
     lasso = pyHSICLasso.HSICLasso()
@@ -30,10 +34,12 @@ def pyhsiclasso(x, y, yfeattype: FeatureType, n_features: int, batch_size=500):
 
 
 class SelectorTest(unittest.TestCase):
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_regression_no_noise(self):
         yfeattype = FeatureType.CONT
         self._test_selection(yfeattype, add_noise=False)
 
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_regression_with_noise(self):
         yfeattype = FeatureType.CONT
         self._test_selection(yfeattype, add_noise=True)
@@ -42,6 +48,7 @@ class SelectorTest(unittest.TestCase):
         yfeattype = FeatureType.CONT
         self._test_selection(yfeattype, add_noise=False, apply_transform=True)
 
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_regression_with_noise_with_transform(self):
         yfeattype = FeatureType.CONT
         self._test_selection(yfeattype, add_noise=True, apply_transform=True)
@@ -72,6 +79,7 @@ class SelectorTest(unittest.TestCase):
         yfeattype = FeatureType.DISCR
         self._test_selection(yfeattype, add_noise=False)
 
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_classification_with_noise(self):
         yfeattype = FeatureType.DISCR
         self._test_selection(yfeattype, add_noise=True)
