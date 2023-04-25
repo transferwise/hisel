@@ -183,6 +183,8 @@ class SelectorTest(unittest.TestCase):
                  )
         )
 
+        if QUICK_TEST:
+            return
         # Test autoselection - We do not provide the number of features that should be selected
         autoselection = selector.autoselect(
             batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=3e-2, device=device)
