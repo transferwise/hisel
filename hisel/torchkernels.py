@@ -105,8 +105,9 @@ def multivariate_phi(
         x: Tensor,
         l: float,
         kernel_type: KernelType,
+        dtype=torch.float64,
 ) -> Tensor:
-    gram = multivariate(x, x, l, kernel_type)
+    gram = multivariate(x, x, l, kernel_type, dtype)
     n, m = gram.size()
     gram = gram.reshape(1, n, m)
     return gram
