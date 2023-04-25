@@ -1,9 +1,43 @@
 from typing import Optional
 from joblib import Parallel, delayed
+from enum import Enum
 import numpy as np
 
 
+class KernelType(Enum):
+    RBF = 0
+    DELTA = 1
+
+
 def featwise(
+        x: np.ndarray,
+        l: float,
+        kernel_type: KernelType,
+) -> np.ndarray:
+    if kernel_type == KernelType.RBF:
+        return _rbf_featwise(x, l)
+    elif kernel_type == KernelType.DELTA:
+        return _delta_featwise(x)
+    else:
+        raise ValueError(kernel_type)
+
+
+def multivariate(
+        x: np.ndarray,
+        y: np.ndarray,
+        l: float,
+        kernel_type: KernelType,
+) -> np.ndarray:
+    if kernel_type == KernelType.RBF:
+        return _rbf_multivariate(x, y, l)
+    elif kernel_type == KernelType.DELTA:
+        # Notice that only x is considered in the delta case
+        return _delta_multivariate(x)
+    else:
+        raise ValueError(kernel_type)
+
+
+def _rbf_featwise(
         x: np.ndarray,
         l: float
 ) -> np.ndarray:
@@ -22,7 +56,29 @@ def featwise(
     return grams
 
 
-def multivariate(
+def _delta_featwise(
+        x: np.ndarray,
+) -> np.ndarray:
+    assert x.ndim == 2
+    d, n = x.shape
+    assert x.dtype == int
+    z = np.expand_dims(x, axis=2)
+    s = np.expand_dims(x, axis=1)
+    s2 = np.repeat(
+        s,
+        repeats=n,
+        axis=1,
+    )
+    z2 = np.transpose(s2, (0, 2, 1))
+    normalisation = np.ones_like(s2)
+    for i in range(d):
+        cnt = np.bincount(x[i, :])
+        normalisation[i, :, :] = cnt[s2[i, :, :]]
+    grams = np.asarray(s2 == z2, dtype=float) / normalisation
+    return grams
+
+
+def _rbf_multivariate(
         x: np.ndarray,
         y: np.ndarray,
         l: float
@@ -42,11 +98,31 @@ def multivariate(
     return gram
 
 
+def _delta_multivariate(
+        x: np.ndarray,
+) -> np.ndarray:
+    assert x.dtype == int
+    nx = x.shape[1]
+    xmax = np.roll(1 + np.amax(x, axis=1, keepdims=True), 1)
+    xmax[0, 0] = 1
+    xflat = np.sum(x * xmax, axis=0, keepdims=True)
+    xx = np.repeat(
+        xflat,
+        repeats=nx,
+        axis=0
+    )
+    cnt = np.bincount(xflat[0, :])
+    normalisation = cnt[xx]
+    gram = np.asarray(xx == xx.T, dtype=float) / normalisation
+    return gram
+
+
 def multivariate_phi(
         x: np.ndarray,
-        l: float
+        l: float,
+        kernel_type: KernelType,
 ) -> np.ndarray:
-    gram = multivariate(x, x, l)
+    gram = multivariate(x, x, l, kernel_type)
     gram = np.expand_dims(gram, axis=0)
     return gram
 
@@ -69,13 +145,14 @@ def _center_gram(
 
 
 def _run_batch(
+        kernel_type: KernelType,
         x: np.ndarray,
         l: float,
         h: Optional[np.ndarray] = None,
         is_multivariate: bool = False,
 ) -> np.ndarray:
     phi = multivariate_phi if is_multivariate else featwise
-    grams: np.ndarray = _center_gram(phi(x, l), h)
+    grams: np.ndarray = _center_gram(phi(x, l, kernel_type), h)
     d, n, m = grams.shape
     assert n == m
     g: np.ndarray = np.reshape(grams, (d, n*m)).T
@@ -100,6 +177,7 @@ def _can_allocate(d: int, n: int, num_batches: int):
 
 
 def apply_feature_map(
+        kernel_type: KernelType,
         x: np.ndarray,
         l: float,
         batch_size: int,
@@ -115,6 +193,7 @@ def apply_feature_map(
         h = _centering_matrix(
             d, b) if not is_multivariate else _centering_matrix(1, b)
         partial_phis = [_run_batch(
+            kernel_type,
             batch,
             l,
             h,
@@ -122,7 +201,7 @@ def apply_feature_map(
         ) for batch in batches]
     else:
         partial_phis = Parallel(n_jobs=-1)([
-            delayed(_run_batch)(batch, l) for batch in batches
+            delayed(_run_batch)(kernel_type, batch, l) for batch in batches
         ])
     phi: np.ndarray = np.vstack(partial_phis)
     return phi
@@ -158,7 +237,7 @@ def pyhsiclasso_kernel_delta_norm(X_in_1, X_in_2):
     return K
 
 
-def pyhsiclasso_compute_kernel(x):
+def pyhsiclasso_compute_kernel(x, kernel_type: KernelType):
     d, n = x.shape
     B = n
     M = 1
@@ -166,9 +245,14 @@ def pyhsiclasso_compute_kernel(x):
     H = np.eye(B, dtype=np.float32) - 1 / B * np.ones(B, dtype=np.float32)
     K = np.zeros(n * B * M, dtype=np.float32)
 
-    x = (x / (x.std() + 10e-20)).astype(np.float32)
+    if kernel_type == KernelType.RBF:
 
-    k = pyhsiclasso_kernel_gaussian(x, x, np.sqrt(d))
+        x = (x / (x.std() + 10e-20)).astype(np.float32)
+
+        k = pyhsiclasso_kernel_gaussian(x, x, np.sqrt(d))
+
+    else:
+        k = pyhsiclasso_kernel_delta_norm(x, x)
 
     k = np.dot(np.dot(H, k), H)
 

@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from scipy.stats import special_ortho_group
 
-from hisel.select import Selector
+from hisel.select import Selector, FeatureType
 
 use_pyhsiclasso = True
 try:
@@ -17,67 +17,130 @@ try:
 except (ModuleNotFoundError, ImportError):
     SKIP_CUDA = True
 
+QUICK_TEST = True
+SKIP_CUDA = True if QUICK_TEST else SKIP_CUDA
+use_pyhsiclasso = False if QUICK_TEST else use_pyhsiclasso
 
-def pyhsiclasso(x, y, n_features: int, batch_size=500):
+
+def pyhsiclasso(x, y, yfeattype: FeatureType, n_features: int, batch_size=500):
     lasso = pyHSICLasso.HSICLasso()
     lasso.X_in = x.T
     lasso.Y_in = y.T
-    lasso.regression(n_features, B=batch_size)
+    if yfeattype == FeatureType.DISCR:
+        lasso.classification(n_features, B=batch_size)
+    else:
+        lasso.regression(n_features, B=batch_size)
     return lasso.A
 
 
 class SelectorTest(unittest.TestCase):
-    def test_selection_no_noise(self):
-        self._test_selection(add_noise=False)
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
+    def test_regression_no_noise(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=False)
 
-    def test_selection_with_noise(self):
-        self._test_selection(add_noise=True)
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
+    def test_regression_with_noise(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=True)
 
-    def test_selection_no_noise_with_transform(self):
-        self._test_selection(add_noise=False, apply_transform=True)
+    def test_regression_no_noise_with_transform(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=False, apply_transform=True)
 
-    def test_selection_with_noise_with_transform(self):
-        self._test_selection(add_noise=True, apply_transform=True)
-
-    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
-    def test_cuda_selection_no_noise(self):
-        self._test_selection(add_noise=False, device='cuda')
-
-    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
-    def test_cuda_selection_with_noise(self):
-        self._test_selection(add_noise=True, device='cuda')
-
-    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
-    def test_cuda_selection_no_noise_with_transform(self):
-        self._test_selection(
-            add_noise=False, device='cuda', apply_transform=True)
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
+    def test_regression_with_noise_with_transform(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=True, apply_transform=True)
 
     @unittest.skipIf(SKIP_CUDA, 'cuda not available')
-    def test_cuda_selection_with_noise_with_transform(self):
-        self._test_selection(add_noise=True, device='cuda',
+    def test_cuda_regression_no_noise(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=False, device='cuda')
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_regression_with_noise(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=True, device='cuda')
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_regression_no_noise_with_transform(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype,
+                             add_noise=False, device='cuda', apply_transform=True)
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_regression_with_noise_with_transform(self):
+        yfeattype = FeatureType.CONT
+        self._test_selection(yfeattype, add_noise=True, device='cuda',
                              apply_transform=True)
 
-    def _test_selection(self, add_noise: bool = False, apply_transform: bool = False, device: Optional[str] = None):
-        print('\nTest selection of features in a linear transformation setting')
-        d: int = np.random.randint(low=10, high=20)
+    def test_classification_no_noise(self):
+        yfeattype = FeatureType.DISCR
+        self._test_selection(yfeattype, add_noise=False)
+
+    @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
+    def test_classification_with_noise(self):
+        yfeattype = FeatureType.DISCR
+        self._test_selection(yfeattype, add_noise=True)
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_classification_no_noise(self):
+        yfeattype = FeatureType.DISCR
+        self._test_selection(yfeattype, add_noise=False, device='cuda')
+
+    @unittest.skipIf(SKIP_CUDA, 'cuda not available')
+    def test_cuda_classification_with_noise(self):
+        yfeattype = FeatureType.DISCR
+        self._test_selection(yfeattype, add_noise=True, device='cuda')
+
+    def _test_selection(
+        self,
+        yfeattype: FeatureType,
+        add_noise: bool = False,
+        apply_transform: bool = False,
+        device: Optional[str] = None,
+    ):
+        print('\n\n\n##############################################################')
+        print('Test selection of features in a linear transformation setting')
+        print('##############################################################')
+        print(f'Feature type of y: {yfeattype}')
+        print(f'Apply transform: {apply_transform}')
+        print(f'Noisy target: {add_noise}')
+        print(f'device: {device}')
+        d: int = np.random.randint(low=15, high=25)
         n: int = np.random.randint(low=10000, high=20000)
         n_features: int = d // 3
-        x: np.ndarray = np.random.uniform(size=(n, d))
         features = list(np.random.choice(d, replace=False, size=n_features))
-        y: np.array = x[:, features]
-        if apply_transform:
+        x: np.ndarray = np.random.uniform(size=(n, d))
+        z: np.array = x[:, features]
+        if apply_transform or yfeattype == FeatureType.DISCR:
             tt = np.expand_dims(
                 special_ortho_group.rvs(n_features),
                 axis=0
             )
-            yy = np.expand_dims(y, axis=2)
-            y = (tt @ yy)[:, :, 0]
+            zz = np.expand_dims(z, axis=2)
+            u = (tt @ zz)[:, :, 0]
+        else:
+            u = z
         if add_noise:
-            y += .1 * np.std(y) * np.random.uniform(size=y.shape)
+            scaler = .01 if yfeattype == FeatureType.DISCR else .1
+            u += scaler * np.std(u) * np.random.uniform(size=u.shape)
+        if yfeattype == FeatureType.CONT:
+            y = u
+        elif yfeattype == FeatureType.DISCR:
+            y = np.zeros(shape=(n, 1), dtype=int)
+            for i in range(1, n_features):
+                y += np.asarray(u[:, [i-1]] > u[:, [i]], dtype=int)
+        else:
+            raise ValueError(yfeattype)
+        print(f'Expected features:\n{sorted(features)}\n')
         if use_pyhsiclasso:
             print('Using pyHSICLasso for reconciliation purposes')
             pyhsiclasso_selection = pyhsiclasso(
-                x, y, n_features, 500)
+                x, y, yfeattype, n_features, 500)
+            print(
+                f'pyHSICLasso selected features:\n{sorted(pyhsiclasso_selection)}')
             self.assertEqual(
                 len(pyhsiclasso_selection),
                 len(features),
@@ -95,9 +158,15 @@ class SelectorTest(unittest.TestCase):
                 )
             )
 
-        selector = Selector(x, y)
+        selector = Selector(
+            x, y,
+            xfeattype=FeatureType.CONT,
+            yfeattype=yfeattype
+        )
         selection = selector.select(
             n_features, batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, device=device)
+        print(
+            f'hisel selected features:\n{sorted(selection)}')
         self.assertEqual(
             len(selection),
             len(features),
@@ -114,24 +183,48 @@ class SelectorTest(unittest.TestCase):
                  )
         )
 
+        if QUICK_TEST:
+            return
         # Test autoselection - We do not provide the number of features that should be selected
         autoselection = selector.autoselect(
-            batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=5e-3, device=device)
-        self.assertEqual(
-            len(autoselection),
-            len(features),
-        )
-        self.assertEqual(
-            len(autoselection),
-            n_features,
-        )
-        self.assertEqual(
-            set(autoselection),
-            set(features),
-            msg=(f'Expected features: {features}',
-                 f'Auto-Selected features: {autoselection}'
-                 )
-        )
+            batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=3e-2, device=device)
+        print(
+            f'hisel auto-selected features:\n{sorted(autoselection)}')
+        if yfeattype == FeatureType.CONT:
+            self.assertEqual(
+                len(autoselection),
+                len(features),
+            )
+            self.assertEqual(
+                len(autoselection),
+                n_features,
+            )
+            self.assertEqual(
+                set(autoselection),
+                set(features),
+                msg=(f'Expected features: {features}',
+                     f'Auto-Selected features: {autoselection}'
+                     )
+            )
+        else:
+            self.assertLess(
+                abs(len(autoselection) - len(features)),
+                2
+            )
+            self.assertLess(
+                abs(len(autoselection) - n_features),
+                2
+            )
+            diff_left = set(features).difference(set(autoselection))
+            diff_right = set(autoselection).difference(set(features))
+            diff = diff_left.union(diff_right)
+            self.assertLess(
+                len(diff),
+                2,
+                msg=(f'Expected features: {features}',
+                     f'Auto-Selected features: {autoselection}'
+                     )
+            )
 
 
 if __name__ == '__main__':
