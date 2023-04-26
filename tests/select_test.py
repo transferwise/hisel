@@ -3,13 +3,14 @@ import unittest
 import numpy as np
 from scipy.stats import special_ortho_group
 
-from hisel.select import Selector, FeatureType
+from hisel.select import HSICSelector as Selector, FeatureType
+from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 
-use_pyhsiclasso = True
+USE_PYHSICLASSO = True
 try:
     import pyHSICLasso
 except (ModuleNotFoundError, ImportError):
-    use_pyhsiclasso = False
+    USE_PYHSICLASSO = False
 
 try:
     import torch
@@ -19,7 +20,8 @@ except (ModuleNotFoundError, ImportError):
 
 QUICK_TEST = True
 SKIP_CUDA = True if QUICK_TEST else SKIP_CUDA
-use_pyhsiclasso = False if QUICK_TEST else use_pyhsiclasso
+USE_PYHSICLASSO = False if QUICK_TEST else USE_PYHSICLASSO
+SKLEARN_RECON = True
 
 
 def pyhsiclasso(x, y, xfeattype,  yfeattype, n_features: int, batch_size=500):
@@ -175,7 +177,7 @@ class SelectorTest(unittest.TestCase):
         else:
             raise ValueError(yfeattype)
         print(f'Expected features:\n{sorted(features)}\n')
-        if use_pyhsiclasso and (xfeattype == FeatureType.CONT):
+        if USE_PYHSICLASSO and (xfeattype == FeatureType.CONT):
             print('Using pyHSICLasso for reconciliation purposes')
             pyhsiclasso_selection = pyhsiclasso(
                 x, y, xfeattype, yfeattype, n_features, 500)
@@ -215,6 +217,29 @@ class SelectorTest(unittest.TestCase):
             len(selection),
             n_features,
         )
+        if SKLEARN_RECON:
+            miy = np.linalg.norm(y, axis=1)
+            discrete_features = xfeattype == FeatureType.DISCR
+            if yfeattype == FeatureType.CONT:
+                mi = mutual_info_regression(
+                    x, miy, discrete_features=discrete_features)
+            else:
+                mi = mutual_info_classif(
+                    x, miy, discrete_features=discrete_features)
+            mi /= np.max(mi)
+            miargsort = np.argsort(mi)
+            mi_selection = miargsort[::-1][:n_features]
+            print(f'mi_selection:\n{sorted(mi_selection)}')
+            if set(mi_selection) == set(features):
+                self.assertEqual(
+                    set(selection),
+                    set(mi_selection),
+                    msg=(f'MI features: {sorted(mi_selection)}\n'
+                         f'Selected features: {sorted(selection)}'
+                         )
+                )
+            else:
+                print('WARNING: sklearn mi did not select the right features!')
         if QUICK_TEST and (xfeattype == FeatureType.DISCR or yfeattype == FeatureType.DISCR):
             grace = 3
             diff_left = set(selection).difference(set(features))

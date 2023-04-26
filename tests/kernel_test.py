@@ -7,7 +7,7 @@ import datetime
 
 pyhsiclasso_recon = True
 
-QUICK_TEST = True
+QUICK_TEST = False
 
 
 class KernelTest(unittest.TestCase):
