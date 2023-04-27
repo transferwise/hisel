@@ -62,7 +62,6 @@ def _delta_featwise(
     assert x.ndim == 2
     d, n = x.shape
     assert x.dtype == int
-    z = np.expand_dims(x, axis=2)
     s = np.expand_dims(x, axis=1)
     s2 = np.repeat(
         s,
@@ -240,10 +239,8 @@ def pyhsiclasso_kernel_delta_norm(X_in_1, X_in_2):
 def pyhsiclasso_compute_kernel(x, kernel_type: KernelType):
     d, n = x.shape
     B = n
-    M = 1
 
     H = np.eye(B, dtype=np.float32) - 1 / B * np.ones(B, dtype=np.float32)
-    K = np.zeros(n * B * M, dtype=np.float32)
 
     if kernel_type == KernelType.RBF:
 

@@ -1,10 +1,12 @@
 # API
-from typing import List, Optional
+from typing import List, Optional, Union
 from enum import Enum
+from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from hisel import lar, kernels
 from hisel.kernels import KernelType
+from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 TORCH_AVAILABLE = True
 try:
     from hisel import torchkernels
@@ -21,12 +23,50 @@ class FeatureType(Enum):
     DISCR = 1
 
 
-class Selector:
+def _preprocess_datatypes(
+        y: Union[pd.DataFrame, pd.Series],
+) -> Union[pd.DataFrame, pd.Series]:
+    if isinstance(y, pd.DataFrame):
+        for col in y.columns:
+            if y[col].dtype == bool:
+                y[col] = y[col].astype(int)
+    elif y.dtypes == bool:
+        y = y.astype(int)
+    ydtypes = y.dtypes if isinstance(y, pd.DataFrame) else [y.dtypes]
+    for dtype in ydtypes:
+        assert dtype == int or dtype == float
+    return y
+
+
+def ksgmi(
+        x: pd.DataFrame,
+        y: Union[pd.DataFrame, pd.Series],
+        threshold: float = .01,
+):
+    x = _preprocess_datatypes(x)
+    y = _preprocess_datatypes(y)
+    discrete_features = x.dtypes == int
+    mix = x.values
+    if isinstance(y, pd.Series) or (isinstance(y, pd.DataFrame) and y.shape[1] == 1):
+        miy = np.squeeze(y.values)
+    else:
+        miy = np.linalg.norm(y, axis=1)
+    compute_mi = mutual_info_classif if miy.dtype == int else mutual_info_regression
+    mis = compute_mi(mix, miy, discrete_features=discrete_features)
+    mis /= np.max(mis)
+    isrelevant = mis > threshold
+    relevant_features = np.arange(x.shape[1])[isrelevant]
+    print(f'ksg-mi preprocessing: {sum(isrelevant)} features are pre-selected')
+    return relevant_features, mis
+
+
+class HSICSelector:
     def __init__(self,
                  x: np.ndarray,
                  y: np.ndarray,
                  xfeattype: Optional[FeatureType] = None,
-                 yfeattype: Optional[FeatureType] = None):
+                 yfeattype: Optional[FeatureType] = None,
+                 ):
         assert x.ndim == 2
         assert y.ndim == 2
         nx, dx = x.shape
@@ -124,7 +164,7 @@ class Selector:
 
     def select(self,
                number_of_features: int,
-               batch_size: int = 1000,
+               batch_size: int = 10000,
                minibatch_size: int = 200,
                number_of_epochs: int = 1,
                device: Optional[str] = None,
@@ -179,6 +219,68 @@ class Selector:
         betas /= betas[0]
         number_of_features = sum(betas > threshold)
         return self.ordered_features[:number_of_features]
+
+
+@dataclass
+class Selection:
+    preselection: np.ndarray
+    mis: np.ndarray
+    _innersel: np.ndarray
+    hsic_selection: np.ndarray
+    mi_ordered_features: np.ndarray
+    hsic_ordered_features: np.ndarray
+    lassopaths: pd.DataFrame
+    regcurve: np.ndarray
+
+
+def select(
+    x: pd.DataFrame,
+    y: Union[pd.DataFrame, pd.Series],
+    mi_threshold: float = .05,
+    hsic_threshold: float = .02,
+    batch_size=5000,
+    minibatch_size: int = 200,
+    number_of_epochs: int = 3,
+    device: Optional[str] = None,
+):
+    n, d = x.shape
+    cols, mis = ksgmi(x, y, mi_threshold)
+    x_ = x.iloc[:, cols].values
+    y_ = y.values
+    selector = HSICSelector(x_, y_)
+    innersel_ = selector.autoselect(
+        threshold=hsic_threshold,
+        batch_size=batch_size,
+        minibatch_size=minibatch_size,
+        number_of_epochs=number_of_epochs,
+        device=device
+    )
+    _innersel = np.array(innersel_)
+    print(f'HSIC has selection {len(innersel_)} features')
+    hsic_ordered_features = cols[selector.ordered_features]
+    mi_ordered_features = np.argsort(mis)[::-1]
+    hsic_selection = cols[_innersel]
+    paths = selector.lasso_path()
+    renamecols = {
+        fd: f"f{cols[int(fd.split('f')[1])]}"
+        for fd in paths.columns
+    }
+    paths.rename(
+        columns=renamecols,
+        inplace=True
+    )
+    curve = np.cumsum(np.sort(paths.iloc[-1, :])[::-1])
+    sel = Selection(
+        preselection=cols,
+        _innersel=_innersel,
+        mis=mis,
+        hsic_selection=hsic_selection,
+        mi_ordered_features=mi_ordered_features,
+        hsic_ordered_features=hsic_ordered_features,
+        lassopaths=paths,
+        regcurve=curve
+    )
+    return sel
 
 
 def _make_batches(x, batch_size):
