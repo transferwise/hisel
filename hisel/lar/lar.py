@@ -1,4 +1,4 @@
-# Least angle regression
+#  Least angle regression
 import numpy as np
 from scipy.sparse import lil_matrix
 
@@ -18,7 +18,6 @@ def solve(
     We used the a Python implementation of the Nonnegative LARS solver
     written in MATLAB at http://orbit.dtu.dk/files/5618980/imm5523.zip
     """
-
     assert dim_z > 0
     n, d = x.shape
     xx: np.ndarray = x.T @ x
@@ -57,8 +56,12 @@ def solve(
             rcond=None
         )
         gw = x.T @ x[:, active] @ w
-        gamma[:d - num_active] = (maxc - c[indices]) / \
-            (gw[active[0]] - gw[indices])
+        denom = gw[active[0]] - gw[indices]
+        if np.any(denom == 0.):
+            print('ZeroDivisionError: Results of selection is unrelieable')
+            print('Increase the batch size and try again')
+            break
+        gamma[:d - num_active] = (maxc - c[indices]) / denom
 
         gamma[d - num_active: d] = -beta[active] / w
         gamma[d] = c[active[0]] / gw[active[0]]

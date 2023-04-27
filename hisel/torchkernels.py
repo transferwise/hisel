@@ -1,7 +1,6 @@
 from typing import Optional
 import torch
 from torch import Tensor
-from enum import Enum
 from hisel.kernels import KernelType
 
 
@@ -57,7 +56,6 @@ def _delta_featwise(
     assert x.ndim == 2
     d, n = x.size()
     assert x.dtype in (torch.int32, torch.int64)
-    z = x.reshape(d, n, 1)
     s = x.reshape(d, 1, n)
     s2 = s.expand(-1, n, -1)
     z2 = torch.transpose(s2, 1, 2)
