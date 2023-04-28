@@ -41,6 +41,7 @@ jobs:
           source hisel-env/bin/activate
           python3 -m pip install --upgrade pip wheel setuptools
           python3 -m pip install poetry
+          python3 -m pip install pytest
           poetry lock
           poetry install --with test
 
