@@ -241,10 +241,15 @@ def select(
     batch_size=5000,
     minibatch_size: int = 200,
     number_of_epochs: int = 3,
+    use_preselection: bool = False,
     device: Optional[str] = None,
-):
+) -> Selection:
     n, d = x.shape
-    cols, mis = ksgmi(x, y, mi_threshold)
+    if use_preselection:
+        cols, mis = ksgmi(x, y, mi_threshold)
+    else:
+        cols = np.arange(d)
+        mis = np.zeros(d)
     x_ = x.iloc[:, cols].values
     y_ = y.values
     selector = HSICSelector(x_, y_)
@@ -256,7 +261,7 @@ def select(
         device=device
     )
     _innersel = np.array(innersel_)
-    print(f'HSIC has selection {len(innersel_)} features')
+    print(f'HSIC has selected {len(innersel_)} features')
     hsic_ordered_features = cols[selector.ordered_features]
     mi_ordered_features = np.argsort(mis)[::-1]
     hsic_selection = cols[_innersel]
