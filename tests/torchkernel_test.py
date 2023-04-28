@@ -16,7 +16,8 @@ except (ModuleNotFoundError, ImportError):
 
 class KernelTest(unittest.TestCase):
     @unittest.skipIf(SKIP, 'torch not available')
-    def test_torch_v_numpy_featwise(self):
+    def test_torch_v_numpy_rbf_featwise(self):
+        kernel_type = torchkernels.KernelType.RBF
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
         l: float = np.random.uniform(low=.95, high=5.)
@@ -24,8 +25,32 @@ class KernelTest(unittest.TestCase):
         x = np.random.uniform(size=(d, n))
         x_torch = torch.from_numpy(x)
 
-        f = kernels.featwise(x, l)
-        f_torch = torchkernels.featwise(x_torch, l).detach().cpu().numpy()
+        f = kernels.featwise(x, l, kernel_type)
+        f_torch = torchkernels.featwise(
+            x_torch, l, kernel_type).detach().cpu().numpy()
+
+        self.assertEqual(f.shape, f_torch.shape)
+
+        self.assertTrue(
+            np.allclose(
+                f, f_torch,
+            )
+        )
+
+    @unittest.skipIf(SKIP, 'torch not available')
+    def test_torch_v_numpy_delta_featwise(self):
+        kernel_type = torchkernels.KernelType.DELTA
+        d: int = np.random.randint(low=2, high=10)
+        n: int = np.random.randint(low=1000, high=2000)
+        l: float = 1.
+        m: int = np.random.randint(low=6, high=12)
+
+        x = np.random.randint(m, size=(d, n))
+        x_torch = torch.from_numpy(x)
+
+        f = kernels.featwise(x, l, kernel_type)
+        f_torch = torchkernels.featwise(
+            x_torch, l, kernel_type).detach().cpu().numpy()
 
         self.assertEqual(f.shape, f_torch.shape)
 
@@ -37,6 +62,7 @@ class KernelTest(unittest.TestCase):
 
     @unittest.skipIf(SKIP, 'torch not available')
     def test_rbf(self):
+        kernel_type = torchkernels.KernelType.RBF
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
         l: float = np.random.uniform(low=.95, high=5.)
@@ -46,9 +72,10 @@ class KernelTest(unittest.TestCase):
         g = torch.zeros((d, n, n))
         for i in range(d):
             k[i, :, :] = rbf(x[[i], :].T)
-            g[i, :, :] = torchkernels.multivariate(x[[i], :], x[[i], :], l)
+            g[i, :, :] = torchkernels.multivariate(
+                x[[i], :], x[[i], :], l, kernel_type)
 
-        f = torchkernels.featwise(x, l)
+        f = torchkernels.featwise(x, l, kernel_type)
 
         g = g.detach().cpu().numpy()
         f = f.detach().cpu().numpy()
@@ -65,7 +92,32 @@ class KernelTest(unittest.TestCase):
         )
 
     @unittest.skipIf(SKIP, 'torch not available')
-    def test_torch_v_numpy_multivariate_phi(self):
+    def test_delta(self):
+        kernel_type = torchkernels.KernelType.DELTA
+        d: int = np.random.randint(low=2, high=10)
+        n: int = np.random.randint(low=1000, high=2000)
+        l: float = 1.
+        m: int = np.random.randint(low=6, high=12)
+        x = torch.randint(m, size=(d, n))
+        g = torch.zeros((d, n, n))
+        for i in range(d):
+            g[i, :, :] = torchkernels.multivariate(
+                x[[i], :], x[[i], :], l, kernel_type)
+
+        f = torchkernels.featwise(x, l, kernel_type)
+
+        g = g.detach().cpu().numpy()
+        f = f.detach().cpu().numpy()
+
+        self.assertTrue(
+            np.allclose(
+                f, g
+            )
+        )
+
+    @unittest.skipIf(SKIP, 'torch not available')
+    def test_torch_v_numpy_multivariate_phi_rbf(self):
+        kernel_type = torchkernels.KernelType.RBF
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
         l: float = np.random.uniform(low=.95, high=5.)
@@ -73,8 +125,31 @@ class KernelTest(unittest.TestCase):
         x = np.random.uniform(size=(d, n))
         x_torch = torch.from_numpy(x)
 
-        g = kernels.multivariate_phi(x, l)
-        _g_torch = torchkernels.multivariate_phi(x_torch, l)
+        g = kernels.multivariate_phi(x, l, kernel_type)
+        _g_torch = torchkernels.multivariate_phi(x_torch, l, kernel_type)
+        g_torch = _g_torch.detach().cpu().numpy()
+        self.assertEqual(
+            g.shape,
+            g_torch.shape
+        )
+        self.assertTrue(
+            np.allclose(
+                g, g_torch
+            ))
+
+    @unittest.skipIf(SKIP, 'torch not available')
+    def test_torch_v_numpy_multivariate_phi_delta(self):
+        kernel_type = torchkernels.KernelType.DELTA
+        d: int = np.random.randint(low=2, high=10)
+        n: int = np.random.randint(low=1000, high=2000)
+        l: float = 1.
+        m: int = np.random.randint(low=6, high=18)
+
+        x = np.random.randint(m, size=(d, n))
+        x_torch = torch.from_numpy(x)
+
+        g = kernels.multivariate_phi(x, l, kernel_type)
+        _g_torch = torchkernels.multivariate_phi(x_torch, l, kernel_type)
         g_torch = _g_torch.detach().cpu().numpy()
         self.assertEqual(
             g.shape,
@@ -138,20 +213,33 @@ class KernelTest(unittest.TestCase):
             )
 
     @unittest.skipIf(SKIP, 'torch not available')
-    def test_torch_v_numpy_apply_feature_map(self):
+    def test_torch_v_numpy_apply_rbf_feature_map(self):
+        kernel_type = torchkernels.KernelType.RBF
+        self._test_torch_v_numpy_apply_feature_map(kernel_type)
+
+    @unittest.skipIf(SKIP, 'torch not available')
+    def test_torch_v_numpy_apply_delta_feature_map(self):
+        kernel_type = torchkernels.KernelType.DELTA
+        self._test_torch_v_numpy_apply_feature_map(kernel_type)
+
+    def _test_torch_v_numpy_apply_feature_map(self, kernel_type):
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=10000, high=20000)
         l: float = np.random.uniform(low=.95, high=5.)
         num_batches = 10
         batch_size = n // num_batches
-        x = np.random.uniform(size=(d, n))
+        if kernel_type == torchkernels.KernelType.DELTA:
+            m = np.random.randint(low=6, high=20)
+            x = np.random.randint(m, size=(d, n))
+        else:
+            x = np.random.uniform(size=(d, n))
         x_torch = torch.from_numpy(x)
         assert x.shape == x_torch.size()
         phi: np.ndarray = kernels.apply_feature_map(
-            x, l, batch_size
+            kernel_type, x, l, batch_size
         )
         phi_torch: np.ndarray = torchkernels.apply_feature_map(
-            x_torch, l, batch_size
+            kernel_type, x_torch, l, batch_size
         )
         gram_dim: int = num_batches * batch_size**2
         self.assertEqual(
@@ -170,20 +258,35 @@ class KernelTest(unittest.TestCase):
         )
 
     @unittest.skipIf(SKIP, 'torch not available')
-    def test_torch_v_numpy_multivariate_apply_feature_map(self):
+    def test_torch_v_numpy_multivariate_apply_rbf_feature_map(self):
+        kernel_type = torchkernels.KernelType.RBF
+        self._test_torch_v_numpy_apply_feature_map(kernel_type)
+
+    @unittest.skipIf(SKIP, 'torch not available')
+    def test_torch_v_numpy_multivariate_apply_delta_feature_map(self):
+        kernel_type = torchkernels.KernelType.DELTA
+        self._test_torch_v_numpy_apply_feature_map(kernel_type)
+
+    def _test_torch_v_numpy_multivariate_apply_feature_map(self, kernel_type):
+        print('\n...Running test of multivariate `apply_feature_map` on CPU v. GPU...')
+        print(f'kernel_type: {kernel_type}')
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=10000, high=20000)
         l: float = np.random.uniform(low=.95, high=5.)
         num_batches = 10
         batch_size = n // num_batches
-        x = np.random.uniform(size=(d, n))
+        if kernel_type == torchkernels.KernelType.DELTA:
+            m = np.random.randint(low=6, high=20)
+            x = np.random.randint(m, size=(d, n))
+        else:
+            x = np.random.uniform(size=(d, n))
         x_torch = torch.from_numpy(x)
         assert x.shape == x_torch.size()
         phi: np.ndarray = kernels.apply_feature_map(
-            x, l, batch_size, is_multivariate=True
+            kernel_type, x, l, batch_size, is_multivariate=True
         )
         phi_torch: np.ndarray = torchkernels.apply_feature_map(
-            x_torch, l, batch_size, is_multivariate=True
+            kernel_type, x_torch, l, batch_size, is_multivariate=True
         )
         gram_dim: int = num_batches * batch_size**2
         self.assertEqual(
@@ -203,26 +306,41 @@ class KernelTest(unittest.TestCase):
 
     @unittest.skipIf(
         SKIP_CUDA, "Skipping test of GPU run because CUDA is not available")
-    def test_torch_v_numpy_apply_feature_map_cuda(self):
-        print('\n...Running test of `apply_feature_map` on CPU v. GPU...')
+    def test_torch_v_numpy_apply_rbf_feature_map_cuda(self):
+        kernel_type = torchkernels.KernelType.RBF
+        self._test_torch_v_numpy_apply_feature_map_cuda(kernel_type)
+
+    @unittest.skipIf(
+        SKIP_CUDA, "Skipping test of GPU run because CUDA is not available")
+    def test_torch_v_numpy_apply_delta_feature_map_cuda(self):
+        kernel_type = torchkernels.KernelType.DELTA
+        self._test_torch_v_numpy_apply_feature_map_cuda(kernel_type)
+
+    def _test_torch_v_numpy_apply_feature_map_cuda(self, kernel_type):
+        print('\n...Running test of featwise `apply_feature_map` on CPU v. GPU...')
+        print(f'kernel_type: {kernel_type}')
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         d: int = np.random.randint(low=15, high=20)
-        n: int = np.random.randint(low=50000, high=70000)
+        n: int = np.random.randint(low=50000, high=90000)
         l: float = np.random.uniform(low=.95, high=5.)
-        num_batches = 100
+        num_batches = 300
         batch_size = n // num_batches
 
         print(f'number of features: {d}')
         print(f'number of samples: {n}')
         print(f'number of batches: {num_batches}')
         print(f'batch size: {batch_size}')
-        x = torch.randn(d, n)
+        if kernel_type == torchkernels.KernelType.DELTA:
+            m = np.random.randint(low=6, high=20)
+            x = torch.randint(high=m, size=(d, n))
+        else:
+            x = torch.randn(size=(d, n), dtype=torch.float64)
         x_cuda = x.to(device)
 
         # cpu run
         t0 = datetime.datetime.now()
         phi: Tensor = torchkernels.apply_feature_map(
-            x, l, batch_size
+            kernel_type, x, l, batch_size
         )
         t1 = datetime.datetime.now()
         dt_cpu = t1 - t0
@@ -232,7 +350,7 @@ class KernelTest(unittest.TestCase):
         # cuda run
         t0 = datetime.datetime.now()
         phi_cuda: Tensor = torchkernels.apply_feature_map(
-            x_cuda, l, batch_size
+            kernel_type, x_cuda, l, batch_size
         )
         t1 = datetime.datetime.now()
         dt_gpu = t1 - t0

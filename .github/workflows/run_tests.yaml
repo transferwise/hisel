@@ -22,7 +22,7 @@ jobs:
       - self-hosted
       - production
       - xlarge
-    container: docker.tw.ee/actions_python3
+    container: docker.tw.ee/actions_python3_9
 
     steps:
       # GHA leaves mess behind. We need to clear those or our we end up having unexpected behaviours.
@@ -34,12 +34,6 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
 
       - name: Installing hisel dependencies
         run: |

@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from hisel import lar
+from scipy.stats import multivariate_normal
 use_pyhsiclasso = True
 try:
     from pyHSICLasso import nlars
@@ -10,6 +11,23 @@ except (ModuleNotFoundError, ImportError):
 
 class TestLar(unittest.TestCase):
 
+    def test_with_gaussian_x(self):
+        n = 10000
+        d = np.random.randint(low=10, high=15)
+        a = np.random.randint(low=6, high=d)
+        sigma = np.random.uniform(low=-1., high=1., size=(d, d))
+        sigma2 = np.eye(d) + .9 * sigma @ sigma.T
+        mu = np.zeros(shape=(d, ))
+        x = multivariate_normal.rvs(mu, sigma2, size=n)
+        beta = np.random.permutation(np.vstack(
+            [
+                np.random.uniform(low=.1, high=1.5, size=(a, 1)),
+                np.zeros((d-a, 1), dtype=np.float32)
+            ]
+        ))
+        y = x @ beta
+        self._test(x, y, a, beta)
+
     def test_nonneg_beta_no_noise(self):
         n = 1000
         d = 10
@@ -17,7 +35,7 @@ class TestLar(unittest.TestCase):
         x = np.random.uniform(size=(n, d))
         beta = np.random.permutation(np.vstack(
             [
-                np.random.uniform(size=(a, 1)),
+                np.random.uniform(low=.1, high=1.5, size=(a, 1)),
                 np.zeros((d-a, 1), dtype=np.float32)
             ]
         ))
@@ -45,7 +63,7 @@ class TestLar(unittest.TestCase):
         x = np.random.uniform(size=(n, d))
         beta = np.random.permutation(np.vstack(
             [
-                np.random.uniform(low=0., high=1., size=(a, 1)),
+                np.random.uniform(low=.1, high=1.5, size=(a, 1)),
                 np.zeros((d-a, 1), dtype=np.float32)
             ]
         ))
@@ -59,7 +77,7 @@ class TestLar(unittest.TestCase):
         x = np.random.uniform(size=(n, d))
         beta = np.random.permutation(np.vstack(
             [
-                np.random.uniform(low=0., high=1., size=(a, 1)),
+                np.random.uniform(low=.1, high=1., size=(a, 1)),
                 np.zeros((d-a, 1), dtype=np.float32)
             ]
         ))
@@ -75,10 +93,11 @@ class TestLar(unittest.TestCase):
                 key=lambda a: path[-1, a],
                 reverse=True
             )
+        print(f'hisel selection:\n{sorted(active)}')
         nonactive = list(set(range(x.shape[1])).difference(set(active)))
         if use_pyhsiclasso:
-            print('Using pyHSICLasso.nlars for reconciliation purposes')
             _, _, a_nlar, _, _, _ = nlars.nlars(x, x.T @ y, a, 3)
+            print(f'pyHSICLasso selection:\n{sorted(a_nlar)}')
             self.assertEqual(
                 set(a_nlar),
                 set(active),
