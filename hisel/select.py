@@ -375,6 +375,9 @@ def _run(
     ly = np.sqrt(dy)
     x_gram: np.ndarray
     y_gram: np.ndarray
+    if device is not None and not TORCH_AVAILABLE:
+        print(
+            'You requested device: {device}, but torch is not available. Running on cpu instead with numpy')
     if TORCH_AVAILABLE and device is not None:
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
