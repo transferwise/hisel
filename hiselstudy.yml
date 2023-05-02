@@ -1,0 +1,17 @@
+name: hiselstudy
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.9
+  - ipython
+  - ipykernel
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - shap
+  - lightgbm
+  - tqdm
+  - matplotlib
+  - pip
