@@ -1,4 +1,4 @@
-from typing import Optional, Set, List
+from typing import Optional, List, Union
 from hisel import kernels
 from hisel.kernels import KernelType
 from scipy.stats import special_ortho_group
@@ -53,10 +53,8 @@ def search(
     assert x.ndim == 2
     assert y.ndim == 2
     assert x.shape[0] == y.shape[0]
-    n: int = x.shape[0]  # number of samples
     dx: int = x.shape[1]
     dy: int = y.shape[1]
-    lx: float = np.sqrt(dx)
     ly: float = np.sqrt(dy)
     if xkerneltype is None:
         if x.dtype == int:
@@ -118,7 +116,7 @@ def _try_permutation(
         l: np.ndarray,
         xkerneltype: KernelType,
         active: np.ndarray,
-        permutation: np.ndarray,
+        permutation: Union[List[int], np.ndarray],
 ):
     selection = active[permutation]
     xgrams = kernels.hsic_b(xt[selection, :], xkerneltype)
