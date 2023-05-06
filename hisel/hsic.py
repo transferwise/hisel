@@ -133,9 +133,10 @@ def _sample_permutations(
         p += np.eye(d)
         for k in range(1, d):
             p += np.diag(np.ones(shape=d-k), -k)
+        p = p[:d-1, :]
         p /= np.linalg.norm(p, axis=1, keepdims=True)
         return p
-    u = special_ortho_group.rvs(d, random_state=random_state)[:, :d-1]
+    u = special_ortho_group.rvs(d-1, random_state=random_state)
     xs = np.concatenate((u, -u), axis=1)
     p = projection(d)
     perms = np.argsort(p.T @ xs, axis=0)
