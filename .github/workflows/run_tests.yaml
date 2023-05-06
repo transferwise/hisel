@@ -52,6 +52,7 @@ jobs:
           poetry run pytest tests/torchkernel_test.py --disable-warnings
           poetry run pytest tests/lar_test.py --disable-warnings
           poetry run pytest tests/select_test.py --disable-warnings
+          poetry run pytest tests/hsic_test.py --disable-warnings
 
   run_trufflehog:
     name: "Run trufflehog to catch credential leaks"

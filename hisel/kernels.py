@@ -97,6 +97,22 @@ def _rbf_multivariate(
     return gram
 
 
+def _rbf_hsic_b(
+        x: np.ndarray
+) -> np.ndarray:
+    d, n = x.shape
+    x2 = np.cumsum(np.square(x), axis=0)
+    x2 = np.expand_dims(x2, axis=1)
+    x2 = np.repeat(x2, n, axis=1)
+    cross = np.zeros(shape=(d, n, n))
+    for i in range(d):
+        cross[i] = x[:i+1, :].T @ x[:i+1, :]
+    delta = x2.transpose(0, 2, 1) + x2 - 2 * cross
+    ls2 = np.arange(1, d+1).reshape(d, 1, 1)
+    grams = np.exp(-delta / (2 * ls2))
+    return grams
+
+
 def _delta_multivariate(
         x: np.ndarray,
 ) -> np.ndarray:
@@ -114,6 +130,26 @@ def _delta_multivariate(
     normalisation = cnt[xx]
     gram = np.asarray(xx == xx.T, dtype=float) / normalisation
     return gram
+
+
+def _delta_hsic_b(
+        x: np.ndarray,
+) -> np.ndarray:
+    d, n = x.shape
+    grams = np.empty(shape=(d, n, n), dtype=float)
+    for i in range(d):
+        grams[i, :, :] = _delta_multivariate(x[:i+1])
+    return grams
+
+
+def hsic_b(
+        x: np.ndarray,
+        kernel_type: KernelType,
+) -> np.ndarray:
+    if kernel_type == KernelType.DELTA:
+        return _delta_hsic_b(x)
+    else:
+        return _rbf_hsic_b(x)
 
 
 def multivariate_phi(
