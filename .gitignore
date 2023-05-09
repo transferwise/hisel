@@ -7,3 +7,8 @@ build
 .ipynb_checkpoints
 tests/data/
 *.tar.gz
+*.pdf
+*.log
+*.out
+*.aux
+

@@ -1,4 +1,5 @@
-from typing import Optional, Set, Tuple
+import itertools
+from typing import Optional, Set, Tuple, List
 import numpy as np
 from scipy.stats import special_ortho_group
 
@@ -25,3 +26,67 @@ def haar_sampling(
     permutations = set([
         tuple(sigma) for perm in perms for sigma in perm.T])
     return permutations
+
+
+def first_index(
+        subset: Set[int],
+        permutation: List[int]
+):
+    m = 1
+    for k in range(len(permutation)):
+        if subset.issubset(set(permutation[:k+1])):
+            return m - len(subset)
+        m += 1
+    return m - len(subset)
+
+
+def global_first_index(
+        subset: Set[int],
+        permutations: List[List[int]],
+        d: int,
+):
+    m = d
+    for permutation in permutations:
+        m_ = first_index(subset, permutation)
+        if m_ < m:
+            m = m_
+    return m
+
+
+def rho(
+        permutations: List[List[int]],
+        d: int,
+):
+    normalisation = 2**d - 1
+    m = 0.
+    for subset_size in range(1, d+1):
+        for subset in itertools.combinations(range(d), subset_size):
+            m += global_first_index(set(subset), permutations, d)
+    return m / normalisation
+
+
+def all_rhos(
+    num_permutations: int,
+    d: int
+):
+    all_ = {permutations: rho(permutations, d)
+            for permutations in itertools.combinations(
+                itertools.permutations(range(d)), num_permutations)
+            }
+    return all_
+
+
+def rho_range(
+    num_permutations: int,
+    d: int
+):
+    max_ = 0.
+    min_ = float(d+1)
+    for permutations in itertools.combinations(
+            itertools.permutations(range(d)), num_permutations):
+        r = rho(permutations, d)
+        if r < min_:
+            min_ = r
+        if max_ < r:
+            max_ = r
+    return min_, max_
