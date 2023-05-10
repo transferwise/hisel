@@ -77,28 +77,28 @@ def search(
     l = kernels._center_gram(ygram)
     xt = x.T
     active_set = set(range(dx))
-    sel = np.arange(d, dtype=int)
+    sel = np.arange(dx, dtype=int)
     features = np.array([], dtype=int)
     imall = .0
     n_iter = 0
-    while len(active) > 1 and n_iter < max_iter:
+    while len(active_set) > 1 and n_iter < max_iter:
         active = np.array(list(active_set))
-        num_active = len(a)
+        num_active = len(active)
         num_haar_samples = min(
             max(1, num_permutations // num_active),
             2**num_active // num_active
         )
         permutations = _sample_permutations(
-            d, size=num_haar_samples, random_state=random_state)
+            num_active, size=num_haar_samples, random_state=random_state)
         if parallel:
-            res = Parallel(n_jobs=-1)([
+            tries = Parallel(n_jobs=-1)([
                 delayed(_try_permutation)(
-                    xt, l, xkerneltype, a, list(permutation))
+                    xt, l, xkerneltype, active, list(permutation))
                 for permutation in permutations
             ])
         else:
-            res = [_try_permutation(
-                xt, l, xkerneltype, a, list(permutation))
+            tries = [_try_permutation(
+                xt, l, xkerneltype, active, list(permutation))
                 for permutation in permutations
             ]
 
