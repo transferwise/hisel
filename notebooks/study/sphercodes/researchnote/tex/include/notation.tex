@@ -1,0 +1,188 @@
+
+\newsavebox{\fminipagebox}
+\NewDocumentEnvironment{fminipage}{m O{\fboxsep}}
+{\par\kern#2\noindent\begin{lrbox}{\fminipagebox}
+		\begin{minipage}{#1}\ignorespaces}
+		{\end{minipage}\end{lrbox}%
+	\makebox[#1]{%
+		\kern\dimexpr-\fboxsep-\fboxrule\relax
+		\fbox{\usebox{\fminipagebox}}%
+		\kern\dimexpr-\fboxsep-\fboxrule\relax
+	}\par\kern#2
+}
+
+
+
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Rd}{\R^{d}}
+\newcommand{\Rn}{\R^{n}}
+\newcommand{\Rm}{\R^{m}}
+\newcommand{\RN}{\R^{N}}
+\newcommand{\Rnn}{\R^{n\times n}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\X}{\mathbb{X}}
+\newcommand{\sigmatwo}{\sigma^{2}}
+\newcommand{\phalf}{\frac{p}{2}}
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\inverse}{^{-1}}
+\newcommand{\symmetricPart}{\text{sym}}
+\newcommand{\antisymmetricPart}{\text{antisym}}
+\newcommand{\abs}[1]{\left\lvert {#1} \right\rvert}
+\newcommand{\id}[1][ ]{\mathtt{id}_{#1}}
+
+\newcommand{\transpose}{^{\mathsf{T}}}
+\newcommand{\squared}{^{2}}
+
+\newcommand{\subscriptij}{_{i,j}}
+\newcommand{\tzero}{t_{0}}
+\newcommand{\eminusrt}{e^{-rt}}
+\newcommand{\intzerot}{\int_{0}^{t}}
+
+\newcommand{\suchThat}{\text{ s.t. }}
+\newcommand{\argmin}{\mathrm{argmin}}
+\newcommand{\argmax}{\mathrm{argmax}}
+\newcommand{\partition}{\pi}
+\newcommand{\timeHorizon}{T}
+\newcommand{\timeWindow}{{[0,\timeHorizon]}}
+\newcommand{\intZeroTimeHorizon}{\int_{0}^{\timeHorizon}}
+
+\newcommand{\hurstExponent}{H}
+\newcommand{\volterraKernel}{{K}_{\hurstExponent}}
+\newcommand{\volterraProcess}{\zeta}
+\newcommand{\covarianceKernel}{{R}_{\hurstExponent}}
+
+\newcommand{\zeroSleqTtimeHorizon}{0\leq s\leq t \leq \timeHorizon}
+\newcommand{\zerostTimeHorizon}{0\leq s, t \leq \timeHorizon}
+\newcommand{\simplex}{\lbrace (s,t) \in \R\squared:\,  \zeroSleqTtimeHorizon\rbrace}
+\newcommand{\timesSleqUleqT}{s \leq u \leq t}
+
+\newcommand{\convexHull}{\mathrm{Conv}}
+
+\newcommand{\restrictedto}[1]{\arrowvert_{#1}}
+
+\newcommand{\trace}{\mathtt{trace}}
+
+\newcommand{\positivePartOfMinimum}{\text{min}_{+}}
+
+\newcommand{\dotEta}{\dot{\eta}}
+\newcommand{\Kappa}{\mathfrak{K}}
+
+
+
+\newcommand{\infinity}{\infty}
+
+%notation for derivatives
+\newcommand{\derivative}{^{\prime}}
+\newcommand{\gradient}{\nabla}
+\newcommand{\Fprime}{F\derivative}
+\newcommand{\partialij}{\partial^{2}_{i,j}}
+\newcommand{\gradx}{\nabla_{x}}
+\newcommand{\gradz}{\nabla_{z}}
+\newcommand{\Hessianx}{\nabla^{2}_{xx}}
+\newcommand{\Hessianz}{\nabla^{2}_{zz}}
+
+
+
+%special functions
+\newcommand{\airyFirstFunction}{\mathtt{Ai}}
+\newcommand{\airySecondFunction}{\mathtt{Bi}}
+
+
+%norms
+\newcommand{\norm}[1][\cdot]{\left\lVert {#1}\right\rVert}
+\newcommand{\tripleNorm}[1]{\vert \vert \vert {#1}\vert \vert \vert }
+\newcommand{\supNorm}[1][\cdot]{\lVert #1 \rVert_{\infty}}
+\newcommand{\HoelNorm}[2][\cdot]{\lVert {#1} \rVert_{{#2}\text{-H\"ol}}}
+\newcommand{\pvarNorm}[2][\cdot]{\lVert {#1} \rVert_{{#2}\text{-var}}}
+\newcommand{\pvarNormInterval}[3][\cdot]{\lVert {#1} \rVert_{{#2}\text{-var}, {#3}}}
+
+%Geometric notation
+\newcommand{\oneforms}[2]{ {\Omega}^{{1}} ({#1},{#2})}
+\newcommand{\alphatilde}{\tilde{\alpha}}
+\newcommand{\sectionsTM}[1][TM]{\Gamma(#1)}
+\newcommand{\TxM}{T_x M}
+\newcommand{\TmM}{T_m M}
+\newcommand{\Homomorphisms}{\text{Hom}}
+\newcommand{\manifold}{\mathcal{M}}
+
+%notation functional analysis
+\newcommand{\banachSpace}{\mathcal{B}}
+\newcommand{\pairing}[2]{\langle{#1},\, {#2} \rangle }
+\newcommand{\Lone}{L^{1}}
+\newcommand{\Ltwo}{L\squared}
+\newcommand{\tripleNormClosure}{L^1(\timeWindow;\Ltwo(\Prob))}
+\newcommand{\vectorSpace}{\boldsymbol{V}}
+\newcommand{\smoothFunctions}[2]{C^{\infty}(#1,#2)}
+\newcommand{\smoothCompactlySupportedFunctions}[2]{C^{\infty}_{c}(#1,#2)}
+\newcommand{\Cpvar}[1][p]{C^{{#1}\text{-var}}}
+\newcommand{\Contpvar}[3][p]{C^{{#1}\text{-var}}({#2},{#3})}
+\newcommand{\diracDelta}{\delta}
+\newcommand{\HoelderPaths}[1][\alpha]{C^{{#1}-\text{H\"ol}}}
+\newcommand{\approxAdditivepVariation}{AA_{p\text{-var}}}
+\newcommand{\semigroupP}{\mathtt{P}}
+\newcommand{\semigroupT}{\mathtt{T}}
+\newcommand{\generatorL}{{\mathsf{L}}}
+\newcommand{\generatorA}{\mathsf{A}}
+\newcommand{\CalphaHoelderLoc}{C^{\alpha\text{-H\"ol}}_{\text{loc}}}
+\newcommand{\ContFunctionsOfEllipticPDEregularity}{\mathcal{C}^{\alpha}}
+\newcommand{\sobolevSpace}[1][1,2]{W^{#1}}
+\newcommand{\sobolevSpaceOneTwo}{\sobolevSpace}
+\newcommand{\sobolevSpaceCompactSupport}[1][1,2]{\sobolevSpace[#1]_{0}}
+\newcommand{\sobolevSpaceOneTwoCompactSupport}{\sobolevSpaceOneTwo_{0}}
+\newcommand{\SobolevSpace}[1][1,2]{W^{#1}}
+
+
+%notation Probability
+\newcommand{\Prob}{{{P}}}
+\newcommand{\probabilityLaw}{\text{Law}}
+\newcommand{\probabilityQ}{{{Q}}}
+\newcommand{\probabilityDensity}{{p}}
+\newcommand{\Expectation}{{{E}}}
+\newcommand{\Variance}{\mathrm{Var}}
+\newcommand{\CoVariance}{\mathrm{Cov}}
+\newcommand{\correlation}{\mathrm{corr}}
+\newcommand{\likelihood}{\mathcal{L}}
+\newcommand{\loglikelihood}{\log \likelihood}
+\newcommand{\sigmaAlgebra}{\mathfrak{F}}
+\newcommand{\sigmaAlgebraG}{\mathcal{G}}
+\newcommand{\setAlgebraA}{\mathcal{A}}
+\newcommand{\setAlgebraB}{\mathcal{B}}
+\newcommand{\orthogonal}{^{\perp}}
+\newcommand{\measurableSpace}{\big(\Omega,\sigmaAlgebra \big)}
+\newcommand{\probabilitySpace}{\big(\Omega,\sigmaAlgebra, \Prob \big)}
+\newcommand{\filteredMeasurableSpace}{\big(\Omega,\sigmaAlgebra, (\sigmaAlgebra_t)_t \big)}
+\newcommand{\stochasticBase}{\big(\Omega,\sigmaAlgebra = (\sigmaAlgebra_t)_t , \Prob  \big)}
+\newcommand{\filtrationF}{\mathfrak{F}}
+\newcommand{\internalHistory}{\filtrationF}
+\newcommand{\iid}{\overset{\text{i.i.d.}}{\sim}}
+\newcommand{\gaussian}[2]{\mathcal{N}({#1},{#2})}
+\newcommand{\normalPDF}[3]{p_{\gaussian{#2}{#3}}\left( #1 \right)}
+\newcommand{\WienerMeasure}[1][ ]{\mu_{#1}}
+\newcommand{\brownianMotion}{W}
+\newcommand{\geometricBrownianMotion}{X}
+\newcommand{\compensator}{\Lambda}
+\newcommand{\EDFfun}[1][e]{\hat{F}_{#1}}
+\newcommand{\dirichletLaw}[1][\dirparam]{\Prob_{#1}}
+\newcommand{\dirichletDensity}[1][\dirparam]{f_{#1}}
+\newcommand{\targetDensity}{f}
+\newcommand{\proposalDensity}{g}
+\newcommand{\dirichlet}[1][\dirparam]{\text{Dir}_{#1}}
+\newcommand{\boundedVariationPart}{A}
+\newcommand{\martingale}{M}
+\newcommand{\semimartingale}{S}
+\newcommand{\mi}{I}
+
+
+%Indicator function%
+\def\one{\mbox{1\hspace{-4.25pt}\fontsize{12}{14.4}\selectfont\textrm{1}}}
+
+
+\newcommand{\spaceX}{\mathcal{X}}
+\newcommand{\spaceY}{\mathcal{Y}}
+
+
+
+

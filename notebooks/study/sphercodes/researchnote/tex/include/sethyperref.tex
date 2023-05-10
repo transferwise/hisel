@@ -1,0 +1,18 @@
+%% HYPERREF %%
+% The hyperref package gives us a pdf with properly built
+% internal navigation ('pdf bookmarks' for the table of contents,
+% internal cross-reference links, web links for URLs, etc.)
+\usepackage{hyperref}
+% Colors for the hyperref package
+\definecolor{urlcolor}{rgb}{0,.145,.698}
+\definecolor{linkcolor}{rgb}{.01,0.01,0.01}
+\definecolor{citecolor}{rgb}{.12,.54,.11}
+% Setup hyperref package
+\hypersetup{
+breaklinks=true,% so long urls are correctly broken across lines
+colorlinks=true,
+urlcolor=urlcolor,
+linkcolor=linkcolor,
+citecolor=citecolor,
+}
+\newcommand{\weblink}[2]{{\color{blue} \underline{\href{#1}{#2}}}}
