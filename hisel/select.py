@@ -231,6 +231,7 @@ class Selection:
     hsic_ordered_features: np.ndarray
     lassopaths: pd.DataFrame
     regcurve: np.ndarray
+    features: List[str] = None
 
 
 def select(
@@ -252,6 +253,8 @@ def select(
         mis = np.zeros(d)
     x_ = x.iloc[:, cols].values
     y_ = y.values
+    if y_.ndim == 1:
+        y_ = y_.reshape(-1, 1)
     selector = HSICSelector(x_, y_)
     innersel_ = selector.autoselect(
         threshold=hsic_threshold,
@@ -275,6 +278,7 @@ def select(
         inplace=True
     )
     curve = np.cumsum(np.sort(paths.iloc[-1, :])[::-1])
+    features = list(x.columns[hsic_selection])
     sel = Selection(
         preselection=cols,
         _innersel=_innersel,
@@ -283,7 +287,8 @@ def select(
         mi_ordered_features=mi_ordered_features,
         hsic_ordered_features=hsic_ordered_features,
         lassopaths=paths,
-        regcurve=curve
+        regcurve=curve,
+        features=features,
     )
     return sel
 
