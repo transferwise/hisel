@@ -288,6 +288,54 @@ class KernelTest(unittest.TestCase):
             )
         )
 
+    def test_rbf_hsic_b(self):
+        n: int = np.random.randint(low=1000, high=2000)
+        d: int = np.random.randint(low=5, high=20)
+        x = np.random.uniform(size=(d, n))
+        grams = kernels._rbf_hsic_b(x)
+        self.assertEqual(
+            grams.shape,
+            (d, n, n)
+        )
+        for i in range(1, 1+d):
+            y = x[:i, :]
+            l = np.sqrt(i)
+            gram = kernels.multivariate_phi(y, l, kernels.KernelType.RBF)
+            self.assertEqual(
+                gram.shape,
+                (1, n, n)
+            )
+            self.assertTrue(
+                np.allclose(
+                    grams[[i-1]],
+                    gram
+                )
+            )
+
+    def test_delta_hsic_b(self):
+        n: int = np.random.randint(low=1000, high=2000)
+        d: int = np.random.randint(low=5, high=20)
+        x = np.random.randint(low=0, high=20, size=(d, n))
+        grams = kernels._delta_hsic_b(x)
+        self.assertEqual(
+            grams.shape,
+            (d, n, n)
+        )
+        for i in range(1, 1+d):
+            y = x[:i, :]
+            l = np.sqrt(i)
+            gram = kernels.multivariate_phi(y, l, kernels.KernelType.DELTA)
+            self.assertEqual(
+                gram.shape,
+                (1, n, n)
+            )
+            self.assertTrue(
+                np.allclose(
+                    grams[[i-1]],
+                    gram
+                )
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
