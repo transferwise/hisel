@@ -56,13 +56,13 @@ class HSICTest(unittest.TestCase):
         )
 
     def test_search_rbf_classif(self):
-        dx = 18
+        dx = 16
         n = 500
         n_rel = 8
         xkerneltype = KernelType.RBF
-        num_permutations = 2
+        num_permutations = 4
         im_ratio = .1
-        u = np.random.randint(low=-9, high=9,  size=(1, n_rel))
+        u = np.random.randint(low=-4, high=4,  size=(1, n_rel))
         a_ = np.concatenate((
             u,
             np.zeros(shape=(1, dx - n_rel), dtype=int)
@@ -121,7 +121,7 @@ class HSICTest(unittest.TestCase):
         expected = set(expected_)
         print(f'Expected number of relevant features: {len(expected)}')
         sel = hsic.search(
-            x, y, num_permutations=num_permutations, im_ratio=im_ratio)
+            x, y, num_permutations=num_permutations, max_iter=4, im_ratio=im_ratio)
         selected = set(sel)
         err = f'expected: {sorted(expected)}\n'
         err += f'selected: {sorted(selected)}\n'
@@ -142,7 +142,7 @@ class HSICTest(unittest.TestCase):
         n = 1000
         n_rel = dx // 3
         dy = n_rel
-        num_permutations = 2
+        num_permutations = 4
         im_ratio = .35
         u = special_ortho_group.rvs(n_rel)[:dy, :]
         a_ = np.concatenate((

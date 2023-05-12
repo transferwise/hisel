@@ -1,6 +1,7 @@
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Set, Tuple
 from hisel import kernels
 from hisel.kernels import KernelType
+from hisel import permutohedron
 from scipy.stats import special_ortho_group
 import numpy as np
 from joblib import Parallel, delayed
@@ -46,9 +47,11 @@ def search(
         y: np.ndarray,
         xkerneltype: Optional[KernelType] = None,
         ykerneltype: Optional[KernelType] = None,
-        num_permutations: int = 3,
+        num_permutations: Optional[int] = None,
         im_ratio: float = .1,
+        max_iter: int = 3,
         parallel: bool = True,
+        random_state: Optional[int] = None,
 ):
     assert x.ndim == 2
     assert y.ndim == 2
@@ -66,48 +69,52 @@ def search(
             ykerneltype = KernelType.DELTA
         else:
             ykerneltype = KernelType.RBF
+    if num_permutations is None:
+        num_permutations = 3 * dx
     ygram: np.ndarray = kernels.multivariate_phi(
         y.T, ly, ykerneltype
     )
     l = kernels._center_gram(ygram)
     xt = x.T
-    active = set(range(dx))
-    features = set({})
-    im = .0
-    while len(active) > 1:
-        a = np.array(list(active))
-        len_a = len(a)
-        hsim = np.zeros(shape=(len_a,))
-        res = []
-        permutations = set()
-        m = min(num_permutations, 2**len_a // len_a)
-        for rs in range(m):
-            permutations.update(_sample_permutations(len_a, random_state=rs))
+    active_set = set(range(dx))
+    sel = np.arange(dx, dtype=int)
+    features = np.array([], dtype=int)
+    imall = .0
+    n_iter = 0
+    while len(active_set) > 1 and n_iter < max_iter:
+        active = np.array(list(active_set))
+        num_active = len(active)
+        num_haar_samples = min(
+            max(1, num_permutations // num_active),
+            2**num_active // num_active
+        )
+        permutations = _sample_permutations(
+            num_active, size=num_haar_samples, random_state=random_state)
         if parallel:
-            res = Parallel(n_jobs=-1)([
+            tries = Parallel(n_jobs=-1)([
                 delayed(_try_permutation)(
-                    xt, l, xkerneltype, a, list(permutation))
+                    xt, l, xkerneltype, active, list(permutation))
                 for permutation in permutations
             ])
         else:
-            res = [_try_permutation(
-                xt, l, xkerneltype, a, list(permutation))
+            tries = [_try_permutation(
+                xt, l, xkerneltype, active, list(permutation))
                 for permutation in permutations
             ]
 
-        for hsim_, idx_ in res:
-            if np.amax(hsim_) > np.amax(hsim):
-                hsim = hsim_
-                idx = idx_
-                s = np.argmax(hsim)
-
-        s = np.argmax(hsim)
-        if hsim[s] < im_ratio * im:
+        im = .0
+        for im_, sel_ in tries:
+            if im_ > im:
+                sel = sel_
+                im = im_
+        if im < im_ratio * imall:
             break
-        elif hsim[s] > im:
-            im = hsim[s]
-        features = features.union(set(idx[:s+1]))
-        active = active.difference(features)
+        elif im > imall:
+            imall = im
+
+        features = np.concatenate((features, sel))
+        active_set = active_set.difference(set(features))
+        n_iter += 1
     return features
 
 
@@ -121,25 +128,16 @@ def _try_permutation(
     selection = active[permutation]
     xgrams = kernels.hsic_b(xt[selection, :], xkerneltype)
     hsim = np.trace(xgrams @ l, axis1=1, axis2=2)
-    return hsim, selection
+    s = np.argmax(hsim)
+    selection = selection[:s+1]
+    im = hsim[s]
+    return im, selection
 
 
 def _sample_permutations(
-        d,
+        d: int,
+        size: int = 1,
         random_state: Optional[int] = None,
-):
-    def projection(d: int):
-        p = np.diag(np.arange(-1, -d, -1, dtype=float), 1)
-        p += np.eye(d)
-        for k in range(1, d):
-            p += np.diag(np.ones(shape=d-k), -k)
-        p = p[:d-1, :]
-        p /= np.linalg.norm(p, axis=1, keepdims=True)
-        return p
-    u = special_ortho_group.rvs(d-1, random_state=random_state)
-    xs = np.concatenate((u, -u), axis=1)
-    p = projection(d)
-    perms = np.argsort(p.T @ xs, axis=0)
-    permutations = set([
-        tuple(sigma) for sigma in perms.T])
-    return permutations
+) -> Set[Tuple[int, ...]]:
+    return permutohedron.haar_sampling(
+        d, size, random_state)
