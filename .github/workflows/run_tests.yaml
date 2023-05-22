@@ -43,7 +43,7 @@ jobs:
           python3 -m pip install poetry
           python3 -m pip install pytest
           poetry lock
-          poetry install --with test
+          poetry install
 
       - name: Run hisel tests
         run: |

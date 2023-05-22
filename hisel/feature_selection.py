@@ -37,7 +37,7 @@ class SearchParameters(Parameters):
 class HSICLassoParameters(Parameters):
     mi_threshold: float = .0001
     hsic_threshold: float = .01
-    batch_size = 5000
+    batch_size: int = 5000
     minibatch_size: int = 200
     number_of_epochs: int = 4
     use_preselection: bool = True
