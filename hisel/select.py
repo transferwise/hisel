@@ -1,5 +1,5 @@
 # API
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
@@ -42,22 +42,33 @@ def ksgmi(
         x: pd.DataFrame,
         y: Union[pd.DataFrame, pd.Series],
         threshold: float = .01,
-):
+) -> Tuple[List[str], pd.Series]:
     x = _preprocess_datatypes(x)
     y = _preprocess_datatypes(y)
     discrete_features = x.dtypes == int
     mix = x.values
     if isinstance(y, pd.Series) or (isinstance(y, pd.DataFrame) and y.shape[1] == 1):
-        miy = np.squeeze(y.values)
+        miys = np.squeeze(y.values).reshape(-1, 1)
     else:
-        miy = np.linalg.norm(y, axis=1)
-    compute_mi = mutual_info_classif if miy.dtype == int else mutual_info_regression
-    mis = compute_mi(mix, miy, discrete_features=discrete_features)
-    mis /= np.max(mis)
-    isrelevant = mis > threshold
-    relevant_features = np.arange(x.shape[1])[isrelevant]
-    print(f'ksg-mi preprocessing: {sum(isrelevant)} features are pre-selected')
-    return relevant_features, mis
+        miys = y.values
+    sel = set()
+    totmis = np.zeros(x.shape[1], dtype=float)
+    for j in range(miys.shape[1]):
+        miy = miys[:, j]
+        compute_mi = mutual_info_classif if miy.dtype == int else mutual_info_regression
+        mis = pd.Series(
+            compute_mi(mix, miy, discrete_features=discrete_features),
+            index=x.columns)
+        mis /= np.max(mis)
+        sel = sel.union(set(
+            set(mis.loc[mis > threshold].index)
+        ))
+        totmis += mis
+    mutual_infos = pd.Series(totmis, index=x.columns)
+    relevant_features = list(sel)
+    print(
+        f'ksg-mi preprocessing: {len(relevant_features)} features are pre-selected')
+    return relevant_features, mutual_infos
 
 
 class HSICSelector:
@@ -66,6 +77,7 @@ class HSICSelector:
                  y: np.ndarray,
                  xfeattype: Optional[FeatureType] = None,
                  yfeattype: Optional[FeatureType] = None,
+                 feature_names: Optional[List[str]] = None,
                  ):
         assert x.ndim == 2
         assert y.ndim == 2
@@ -94,6 +106,11 @@ class HSICSelector:
         self.yfeattype = yfeattype
         self.xkerneltype = KernelType.DELTA if xfeattype == FeatureType.DISCR else KernelType.RBF
         self.ykerneltype = KernelType.DELTA if yfeattype == FeatureType.DISCR else KernelType.RBF
+        if feature_names is None:
+            self.feature_names = [f'f{f}' for f in range(x.shape[1])]
+            pass
+        else:
+            self.feature_names = feature_names
 
     def lasso_path(self):
         if not hasattr(self, 'lassopaths'):
@@ -109,7 +126,7 @@ class HSICSelector:
             paths.append(_p)
         path = np.mean(np.vstack(paths), axis=0)
         df: pd.DataFrame = pd.DataFrame(
-            path, columns=[f'f{f}' for f in range(path.shape[1])])
+            path, columns=self.feature_names)
         return df
 
     def projection_matrix(self,
@@ -208,30 +225,49 @@ class HSICSelector:
                    number_of_epochs: int = 1,
                    threshold: float = .01,
                    device: Optional[str] = None,
-                   ):
-        curve = self.regularization_curve(
-            batch_size=batch_size,
-            minibatch_size=minibatch_size,
-            number_of_epochs=number_of_epochs,
-            device=device,
+                   lasso_path: Optional[pd.DataFrame] = None,
+                   ) -> List[str]:
+        if lasso_path is None:
+            curve = self.regularization_curve(
+                batch_size=batch_size,
+                minibatch_size=minibatch_size,
+                number_of_epochs=number_of_epochs,
+                device=device,
+            )
+            lasso_path = self.lasso_path()
+        return HSICSelector.select_from_lasso_path(lasso_path, threshold)
+
+    @staticmethod
+    def select_from_lasso_path(
+        lasso_path: pd.DataFrame,
+        threshold: float = .01,
+    ) -> List[str]:
+        features = list(lasso_path.columns)
+        curve = np.cumsum(np.sort(lasso_path.iloc[-1, :])[::-1])
+        ordered_features = sorted(
+            features,
+            key=lambda a: lasso_path[a].values[-1],
+            reverse=True
         )
         betas = np.diff(curve, prepend=.0)
         betas /= betas[0]
         number_of_features = sum(betas > threshold)
-        return self.ordered_features[:number_of_features]
+        return ordered_features[:number_of_features]
 
 
 @dataclass
 class Selection:
-    preselection: np.ndarray
-    mis: np.ndarray
-    _innersel: np.ndarray
-    hsic_selection: np.ndarray
-    mi_ordered_features: np.ndarray
-    hsic_ordered_features: np.ndarray
+    preselection: List[str]
+    mis: pd.Series
+    hsic_selection: List[str]
+    mi_ordered_features: List[str]
+    hsic_ordered_features: List[str]
     lassopaths: pd.DataFrame
     regcurve: np.ndarray
     features: List[str] = None
+
+    def select_from_lasso_path(self, threshold: float = 0.01):
+        return HSICSelector.select_from_lasso_path(self.lassopaths, threshold)
 
 
 def select(
@@ -249,13 +285,13 @@ def select(
     if use_preselection:
         cols, mis = ksgmi(x, y, mi_threshold)
     else:
-        cols = np.arange(d)
-        mis = np.zeros(d)
-    x_ = x.iloc[:, cols].values
+        cols = x.columns.tolist()
+        mis = pd.Series(np.zeros(d), index=cols)
+    x_ = x.loc[:, cols].values
     y_ = y.values
     if y_.ndim == 1:
         y_ = y_.reshape(-1, 1)
-    selector = HSICSelector(x_, y_)
+    selector = HSICSelector(x_, y_, feature_names=cols)
     innersel_ = selector.autoselect(
         threshold=hsic_threshold,
         batch_size=batch_size,
@@ -263,25 +299,19 @@ def select(
         number_of_epochs=number_of_epochs,
         device=device
     )
-    _innersel = np.array(innersel_)
     print(f'HSIC has selected {len(innersel_)} features')
-    hsic_ordered_features = cols[selector.ordered_features]
-    mi_ordered_features = np.argsort(mis)[::-1]
-    hsic_selection = cols[_innersel]
-    paths = selector.lasso_path()
-    renamecols = {
-        fd: f"f{cols[int(fd.split('f')[1])]}"
-        for fd in paths.columns
-    }
-    paths.rename(
-        columns=renamecols,
-        inplace=True
+    hsic_ordered_features = list(
+        np.array(cols)[selector.ordered_features]
     )
-    curve = np.cumsum(np.sort(paths.iloc[-1, :])[::-1])
-    features = list(x.columns[hsic_selection])
+    preselection: List[str] = cols
+    mi_ordered_features: List[str] = list(
+        mis.sort_values(ascending=False).index)
+    hsic_selection: List[str] = innersel_
+    paths: pd.DataFrame = selector.lasso_path()
+    curve: np.array = np.cumsum(np.sort(paths.iloc[-1, :])[::-1])
+    features: List[str] = hsic_selection
     sel = Selection(
-        preselection=cols,
-        _innersel=_innersel,
+        preselection=preselection,
         mis=mis,
         hsic_selection=hsic_selection,
         mi_ordered_features=mi_ordered_features,

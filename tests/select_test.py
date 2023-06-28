@@ -191,14 +191,13 @@ class SelectorTest(unittest.TestCase):
                 len(pyhsiclasso_selection),
                 n_features,
             )
-            self.assertEqual(
-                set(pyhsiclasso_selection),
-                set(features),
-                msg=(
-                    f'\npyhsiclasso_selection: {sorted(pyhsiclasso_selection)}'
-                    f'\nfeatures: {sorted(features)}\n\n'
-                )
+            msg = (
+                f'\npyhsiclasso_selection: {sorted(pyhsiclasso_selection)}'
+                f'\nfeatures: {sorted(features)}\n\n'
             )
+            if not set(pyhsiclasso_selection) == set(features):
+                print(
+                    f'WARNING: pyHSICLasso did not perform an exact selection:\n{msg}')
 
         selector = Selector(
             x, y,
@@ -207,6 +206,7 @@ class SelectorTest(unittest.TestCase):
         )
         selection = selector.select(
             n_features, batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, device=device)
+        print(f'Expected features:\n{sorted(features)}')
         print(
             f'hisel selected features:\n{sorted(selection)}')
         self.assertEqual(
@@ -218,7 +218,7 @@ class SelectorTest(unittest.TestCase):
             n_features,
         )
         if SKLEARN_RECON:
-            miy = np.linalg.norm(y, axis=1)
+            miy = np.sum(y, axis=1)
             discrete_features = xfeattype == FeatureType.DISCR
             if yfeattype == FeatureType.CONT:
                 mi = mutual_info_regression(
@@ -264,8 +264,10 @@ class SelectorTest(unittest.TestCase):
         if QUICK_TEST:
             return
         # Test autoselection - We do not provide the number of features that should be selected
-        autoselection = selector.autoselect(
+        autoselected_features = selector.autoselect(
             batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=3e-2, device=device)
+        autoselection = [int(feat.split('f')[-1])
+                         for feat in autoselected_features]
         print(
             f'hisel auto-selected features:\n{sorted(autoselection)}')
         if yfeattype == FeatureType.CONT:

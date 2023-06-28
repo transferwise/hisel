@@ -78,9 +78,12 @@ def select_features(
         hsiclasso_parameters = HSICLassoParameters()
     if categorical_search_parameters is None:
         categorical_search_parameters = SearchParameters()
+
+    print("\n***Selection of continuous features***")
     continuous_lasso_selection: LassoSelection = select.select(
         xdf[continuous_features], ydf, **hsiclasso_parameters)
 
+    print("\n***Selection of categorical features***")
     categorical_search_selection: categorical.Selection = categorical.select(
         xdf[discrete_features], ydf, **categorical_search_parameters)
 

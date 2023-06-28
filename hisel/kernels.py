@@ -2,6 +2,7 @@ from typing import Optional
 from joblib import Parallel, delayed
 from enum import Enum
 import numpy as np
+from tqdm import tqdm
 
 
 class KernelType(Enum):
@@ -233,10 +234,10 @@ def apply_feature_map(
             l,
             h,
             is_multivariate
-        ) for batch in batches]
+        ) for batch in tqdm(batches)]
     else:
         partial_phis = Parallel(n_jobs=-1)([
-            delayed(_run_batch)(kernel_type, batch, l) for batch in batches
+            delayed(_run_batch)(kernel_type, batch, l) for batch in tqdm(batches)
         ])
     phi: np.ndarray = np.vstack(partial_phis)
     return phi
