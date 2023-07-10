@@ -1,9 +1,14 @@
 from typing import Optional, Set, Tuple, Callable, Union, List
+import itertools
+import threading
+import sys
+import time
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 from sklearn.metrics import adjusted_mutual_info_score
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
 
 from hisel import permutohedron
@@ -67,10 +72,12 @@ def select(
         parallel: bool = False,
         random_state: Optional[int] = None,
 ) -> Selection:
+    print(f'Number of categorical features: {xdf.shape[1]}')
     xdf = _preprocess_datatypes(xdf)
     x = xdf.values
     ydf = _preprocess_datatypes(ydf)
     allfeatures: List[np.ndarray] = []
+
     if isinstance(ydf, pd.Series):
         if ydf.dtypes == float:
             y = _discretise(ydf.values)
@@ -105,6 +112,7 @@ def select(
     fs = np.concatenate(allfeatures)
     indexes = np.array(list(set(fs)), dtype=int)
     features = list(xdf.columns[indexes])
+    print(f'Number of selected categorical features: {len(features)}')
     return Selection(indexes=indexes, features=features)
 
 
@@ -124,7 +132,7 @@ def search(
     assert x.dtype == int
     assert y.dtype == int
     if num_permutations is None:
-        num_permutations = 3 * d
+        num_permutations = d
     x = x - np.amin(x, axis=0, keepdims=True)
     y = y - np.amin(y, axis=0, keepdims=True)
     active_set = set(range(d))
@@ -132,7 +140,7 @@ def search(
     features = np.array([], dtype=int)
     imall = .0
     n_iter = 0
-    while len(active_set) > 1 and n_iter < max_iter:
+    while len(active_set) > 0 and n_iter < max_iter:
         active = np.array(list(active_set))
         num_active = len(active)
         num_haar_samples = min(
@@ -148,11 +156,11 @@ def search(
             tries = Parallel(n_jobs=-1)([
                 delayed(_try_permutation)(
                     ami, x, y, active, list(permutation))
-                for permutation in permutations
+                for permutation in tqdm(permutations)
             ])
         else:
             tries = [_try_permutation(
-                ami, x, y, active, list(permutation)) for permutation in permutations]
+                ami, x, y, active, list(permutation)) for permutation in tqdm(permutations)]
 
         im = .0
         for im_, sel_ in tries:
@@ -169,6 +177,16 @@ def search(
         features = np.concatenate((features, sel))
         active_set = active_set.difference(set(features))
         n_iter += 1
+    threshold = im_ratio * imall
+    fwsel = _featurewise_selection(
+        ami,
+        x,
+        y,
+        threshold
+    )
+    features = np.array(list(
+        set(features).union(set(fwsel))
+    ))
     return features
 
 
@@ -209,3 +227,17 @@ def _try_permutation(
     im = ims[s]
     selection = sel[:s+1]
     return im, selection
+
+
+def _featurewise_selection(
+        metric: Callable[[np.ndarray, np.ndarray], np.ndarray],
+        x: np.ndarray,
+        y: np.ndarray,
+        threshold: float,
+) -> List[int]:
+    sel = []
+    for i in range(x.shape[1]):
+        v = metric(x[:, [i]], y)
+        if v > threshold:
+            sel.append(i)
+    return sel

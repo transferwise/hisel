@@ -3,16 +3,14 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python
+  - python=3.9
   - ipython
   - ipykernel
-  - numpy
-  - pandas
-  - scipy
-  - scikit-learn
+  - numpy<1.22
   - matplotlib
+  - pytest
   - pip
   - pip:
-    - cython
     - notebook
+    - pyHSICLasso
 
