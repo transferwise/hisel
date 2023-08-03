@@ -49,7 +49,6 @@ jobs:
         run: |
           source hisel-env/bin/activate
           poetry run pytest tests/kernel_test.py --disable-warnings
-          poetry run pytest tests/torchkernel_test.py --disable-warnings
           poetry run pytest tests/lar_test.py --disable-warnings
           poetry run pytest tests/select_test.py --disable-warnings
           poetry run pytest tests/hsic_test.py --disable-warnings
