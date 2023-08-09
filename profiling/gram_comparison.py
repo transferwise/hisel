@@ -27,8 +27,6 @@ class PyHSICLasso:
         # This function faithfully reproduces the inner working
         # of the function pyHSICLasso.hsic_lasso.hsic_lasso
         # responsible for computing the Gram matrix.
-        # Part of the code looks wrong, but I am keeping it
-        # as is in the repo.
         # See
         # https://github.com/riken-aip/pyHSICLasso/blob/400afe9347bf0ed58d97b9e39b911b44c45bebff/pyHSICLasso/hsic_lasso.py#L18
 
@@ -152,7 +150,7 @@ class PyHSICLasso:
 class Experiment:
     def __init__(self,
                  num_samples=1000,
-                 num_features=100,
+                 num_features=500,
                  batch_size=1000,
                  ):
         self.num_samples = num_samples

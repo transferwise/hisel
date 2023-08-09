@@ -171,7 +171,7 @@ def _centering_matrix(d: int, n: int) -> np.ndarray:
     return h
 
 
-def _center_gram(
+def _center_gram_matmul(
         g: np.ndarray,
         h: Optional[np.ndarray] = None
 ) -> np.ndarray:
@@ -180,15 +180,22 @@ def _center_gram(
     return h @ g @ h
 
 
+def _center_gram(
+        g: np.ndarray,
+) -> np.ndarray:
+    g -= np.mean(g, axis=-1, keepdims=True)
+    g -= np.mean(g, axis=-2, keepdims=True)
+    return g
+
+
 def _run_batch(
         kernel_type: KernelType,
         x: np.ndarray,
         l: float,
-        h: Optional[np.ndarray] = None,
         is_multivariate: bool = False,
 ) -> np.ndarray:
     phi = multivariate_phi if is_multivariate else featwise
-    grams: np.ndarray = _center_gram(phi(x, l, kernel_type), h)
+    grams: np.ndarray = _center_gram(phi(x, l, kernel_type))
     d, n, m = grams.shape
     assert n == m
     g: np.ndarray = np.reshape(grams, (d, n*m)).T
@@ -226,13 +233,10 @@ def apply_feature_map(
     num_of_batches = len(batches)
     # _can_allocate(d, n, num_of_batches)
     if no_parallel or num_of_batches < 2 or d*n < 100000:
-        h = _centering_matrix(
-            d, b) if not is_multivariate else _centering_matrix(1, b)
         partial_phis = [_run_batch(
             kernel_type,
             batch,
             l,
-            h,
             is_multivariate
         ) for batch in tqdm(batches)]
     else:
