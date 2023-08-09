@@ -177,14 +177,18 @@ def main():
         'experiment.run_hisel()',
         globals=globals(),
         number=3)
-    print(f'hisel_time: {hisel_time}')
+    print('\n#################################################################')
+    print(f'# hisel_time: {round(hisel_time, 6)}')
+    print('#################################################################\n\n')
 
     # Compute Gram matrix using pyHSICLasso
     pyhsiclasso_time = timeit.timeit(
         'experiment.run_pyhsiclasso()',
         globals=globals(),
         number=3)
-    print(f'pyhsiclasso_time: {pyhsiclasso_time}')
+    print('\n#################################################################')
+    print(f'# pyhsiclasso_time: {round(pyhsiclasso_time, 6)}')
+    print('#################################################################\n\n\n')
 
 
 if __name__ == '__main__':
