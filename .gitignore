@@ -6,6 +6,7 @@ __pycache__
 build
 .ipynb_checkpoints
 tests/data/
+profiling
 *.tar.gz
 *.pdf
 *.log

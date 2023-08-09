@@ -169,8 +169,9 @@ class KernelTest(unittest.TestCase):
         )
 
     def test_centering_matrix(self):
-        d: int = 1
+        d: int = 10
         n: int = np.random.randint(low=1000, high=2000)
+        a: np.ndarray = np.random.uniform(low=-10., high=10., size=(d, n, n))
         h: np.ndarray = kernels._centering_matrix(d, n)
         self.assertEqual(
             h.shape,
@@ -182,6 +183,12 @@ class KernelTest(unittest.TestCase):
                 h_, h[0, :, :]
             )
         )
+        a1 = kernels._center_gram(a)
+        a2 = kernels._center_gram_matmul(a, h)
+        self.assertEqual(a1.shape, a2.shape)
+        self.assertTrue(
+            np.allclose(
+                a1, a2))
 
     def test_multivariate_rbf(self):
         # When the input is one dimensional,
