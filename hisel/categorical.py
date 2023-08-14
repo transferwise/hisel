@@ -132,7 +132,7 @@ def search(
     assert x.dtype == int
     assert y.dtype == int
     if num_permutations is None:
-        num_permutations = d
+        num_permutations = 1
     x = x - np.amin(x, axis=0, keepdims=True)
     y = y - np.amin(y, axis=0, keepdims=True)
     active_set = set(range(d))

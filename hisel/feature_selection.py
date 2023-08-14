@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, List
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
@@ -35,10 +35,10 @@ class SearchParameters(Parameters):
 
 @dataclass
 class HSICLassoParameters(Parameters):
-    mi_threshold: float = .0001
-    hsic_threshold: float = .01
-    batch_size: int = 5000
-    minibatch_size: int = 200
+    mi_threshold: float = .00001
+    hsic_threshold: float = .0075
+    batch_size: int = 9000
+    minibatch_size: int = 500
     number_of_epochs: int = 4
     use_preselection: bool = True
     device: Optional[str] = None
@@ -56,6 +56,13 @@ discrete_dtypes = [
     np.int32,
     np.int64,
 ]
+
+
+@dataclass
+class FeatureSelectionResult:
+    continuous_lasso_selection: LassoSelection
+    categorical_search_selection: categorical.Selection
+    selected_features: List[str]
 
 
 def select_features(
@@ -89,9 +96,9 @@ def select_features(
 
     selected_features = categorical_search_selection.features + \
         continuous_lasso_selection.features
-    results = dict(
+    result = FeatureSelectionResult(
         continuous_lasso_selection=continuous_lasso_selection,
         categorical_search_selection=categorical_search_selection,
         selected_features=selected_features
     )
-    return results
+    return result

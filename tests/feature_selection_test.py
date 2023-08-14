@@ -7,9 +7,9 @@ from hisel import feature_selection
 
 class FeatSelTest(unittest.TestCase):
     def test(self):
-        d_cont = 20
+        d_cont = 25
         d_discr = 15
-        n = 3000
+        n = 5000
         n_rel_cont = 5
         n_rel_discr = 2
         xcont = np.random.uniform(size=(n, d_cont))
@@ -33,17 +33,22 @@ class FeatSelTest(unittest.TestCase):
                   )
         y = ydiscr * ycont
         xdfcont = pd.DataFrame(xcont, columns=[f'c{i}' for i in range(d_cont)])
+        expected_cont_names = sorted(
+            xdfcont.iloc[:, expected_cont].columns.tolist())
         xdfdiscr = pd.DataFrame(
             xdiscr, columns=[f'd{i}' for i in range(d_discr)])
+        expected_discr_names = sorted(
+            xdfdiscr.iloc[:,        expected_discr].columns.tolist())
         xdf = pd.concat([xdfcont, xdfdiscr], axis=1)
         ydf = pd.Series(y, name='y')
         results = feature_selection.select_features(xdf, ydf)
-        selected_cont = results['continuous_lasso_selection'].hsic_selection
-        selected_discr = results['categorical_search_selection'].indexes
+        selected_cont = results.continuous_lasso_selection.hsic_selection
+        selected_discr = results.categorical_search_selection.features
 
-        print(f'Expected cont:\n{expected_cont}')
+        print('\n\nFeature Selection Test')
+        print(f'Expected cont:\n{expected_cont_names}')
         print(f'Selected continuous features:\n{sorted(selected_cont)}')
-        print(f'Expected discr:\n{expected_discr}')
+        print(f'Expected discr:\n{expected_discr_names}')
         print(f'Selected discrete features:\n{sorted(selected_discr)}')
         self.assertTrue(
             len(selected_cont) > len(expected_cont) - 2

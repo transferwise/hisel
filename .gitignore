@@ -12,4 +12,5 @@ profiling
 *.log
 *.out
 *.aux
+examples/mydata.csv
 
