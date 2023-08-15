@@ -1,5 +1,5 @@
 # API
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Sequence
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
@@ -21,6 +21,19 @@ except (ImportError, ModuleNotFoundError):
 class FeatureType(Enum):
     CONT = 0
     DISCR = 1
+    BOTH = 2
+
+
+def _choose_kernel(feature_type: FeatureType) -> KernelType:
+    if feature_type is None:
+        return KernelType.RBF
+    elif feature_type == FeatureType.CONT:
+        return KernelType.RBF
+    elif feature_type == FeatureType.DISCR:
+        return KernelType.DELTA
+    elif feature_type == FeatureType.BOTH:
+        return KernelType.BOTH
+    return KernelType.RBF
 
 
 def _preprocess_datatypes(
@@ -78,6 +91,7 @@ class HSICSelector:
                  xfeattype: Optional[FeatureType] = None,
                  yfeattype: Optional[FeatureType] = None,
                  feature_names: Optional[List[str]] = None,
+                 catcont_split: Optional[int] = None,
                  ):
         assert x.ndim == 2
         assert y.ndim == 2
@@ -85,10 +99,10 @@ class HSICSelector:
         ny, dy = y.shape
         if xfeattype is None:
             xfeattype = FeatureType.DISCR if x.dtype in (
-                np.int32, np.int64) else FeatureType.CONT
+                np.int16, np.int32, np.int64, int) else FeatureType.CONT
         if yfeattype is None:
             yfeattype = FeatureType.DISCR if y.dtype in (
-                np.int32, np.int64) else FeatureType.CONT
+                np.int16, np.int32, np.int64, int) else FeatureType.CONT
         print('\nHSIC feature selection')
         print(f'Feature type of x: {xfeattype}')
         print(f'Feature type of y: {yfeattype}')
@@ -104,8 +118,9 @@ class HSICSelector:
         self.y = np.array(y, copy=True)
         self.xfeattype = xfeattype
         self.yfeattype = yfeattype
-        self.xkerneltype = KernelType.DELTA if xfeattype == FeatureType.DISCR else KernelType.RBF
-        self.ykerneltype = KernelType.DELTA if yfeattype == FeatureType.DISCR else KernelType.RBF
+        self.xkerneltype = _choose_kernel(xfeattype)
+        self.ykerneltype = _choose_kernel(yfeattype)
+        self.catcont_split = catcont_split
         if feature_names is None:
             self.feature_names = [f'f{f}' for f in range(x.shape[1])]
             pass
@@ -148,6 +163,7 @@ class HSICSelector:
             yfeattype=self.yfeattype,
             repeat=1,
             standard=True,
+            catcont_split=self.catcont_split,
         )
         xs = _make_batches(x_, batch_size)
         ys = _make_batches(y_, batch_size)
@@ -159,6 +175,7 @@ class HSICSelector:
                 yfeattype=self.yfeattype,
                 repeat=number_of_epochs,
                 standard=False,
+                catcont_split=self.catcont_split,
             )
             features, lassopath = _run(
                 x,
@@ -168,6 +185,7 @@ class HSICSelector:
                 device,
                 self.xkerneltype,
                 self.ykerneltype,
+                catcont_split=self.catcont_split,
             )
             p += _to_projection_matrix(
                 features,
@@ -185,7 +203,8 @@ class HSICSelector:
                minibatch_size: int = 200,
                number_of_epochs: int = 1,
                device: Optional[str] = None,
-               ) -> List[int]:
+               return_index: bool = False
+               ) -> Union[Sequence[int], List[str]]:
         p = self.projection_matrix(
             number_of_features=number_of_features,
             batch_size=batch_size,
@@ -193,7 +212,11 @@ class HSICSelector:
             number_of_epochs=number_of_epochs,
             device=device,
         )
-        features = _to_feature_list(p)
+        indexes = _to_feature_list(p)
+        if return_index:
+            return indexes
+        features = list(
+            np.array(self.feature_names)[indexes])
         return features
 
     def regularization_curve(self,
@@ -209,6 +232,7 @@ class HSICSelector:
             minibatch_size,
             number_of_epochs,
             device,
+            return_index=True,
         )
         path = self.lasso_path()
         curve = np.cumsum(np.sort(path.iloc[-1, :])[::-1])
@@ -273,10 +297,10 @@ class Selection:
 def select(
     x: pd.DataFrame,
     y: Union[pd.DataFrame, pd.Series],
-    mi_threshold: float = .05,
-    hsic_threshold: float = .02,
-    batch_size=5000,
-    minibatch_size: int = 200,
+    mi_threshold: float = .00001,
+    hsic_threshold: float = .01,
+    batch_size=9000,
+    minibatch_size: int = 800,
     number_of_epochs: int = 3,
     use_preselection: bool = False,
     device: Optional[str] = None,
@@ -338,6 +362,7 @@ def preprocess(
         yfeattype: FeatureType,
         repeat: int = 1,
         standard: bool = False,
+        catcont_split: Optional[int] = None,
 ):
     assert x.ndim == 2
     assert y.ndim == 2
@@ -346,17 +371,22 @@ def preprocess(
     if xfeattype == FeatureType.DISCR:
         if x.dtype not in (np.int32, np.int64):
             raise ValueError(x.dtype)
-    else:
+        catcont_split = d
+    elif xfeattype == FeatureType.CONT:
+        catcont_split = 0
         x = x.astype(float)
+    elif xfeattype == FeatureType.BOTH:
+        catcont_split = int(catcont_split) if catcont_split else 0
+        assert 0 <= catcont_split and catcont_split <= d
     if yfeattype == FeatureType.DISCR:
         if y.dtype not in (np.int32, np.int64):
             raise ValueError(y.dtype)
-    else:
+    elif yfeattype == FeatureType.CONT:
         y = y.astype(float)
     if standard:
         if xfeattype != FeatureType.DISCR:
-            x = (x - np.sum(x, axis=0, keepdims=True)) / \
-                (1e-9 + np.std(x, axis=0, keepdims=True))
+            x[:, catcont_split:] = (x[:, catcont_split:] - np.sum(x[:, catcont_split:], axis=0, keepdims=True)) / \
+                (1e-9 + np.std(x[:, catcont_split:], axis=0, keepdims=True))
         if yfeattype != FeatureType.DISCR:
             y = (y - np.sum(y, axis=0, keepdims=True)) / \
                 (1e-9 + np.std(y, axis=0, keepdims=True))
@@ -394,6 +424,7 @@ def _run(
         device: Optional[str] = None,
         xkerneltype: Optional[KernelType] = None,
         ykerneltype: Optional[KernelType] = None,
+        catcont_split: Optional[int] = None,
 ):
     if xkerneltype is None:
         xkerneltype = KernelType.DELTA if x.dtype in (
@@ -412,7 +443,7 @@ def _run(
     y_gram: np.ndarray
     if device is not None and not TORCH_AVAILABLE:
         print(
-            'You requested device: {device}, but torch is not available. Running on cpu instead with numpy')
+            f'You requested device: {device}, but torch is not available. Running on cpu instead with numpy')
     if TORCH_AVAILABLE and device is not None:
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
@@ -429,10 +460,15 @@ def _run(
     else:
         x_gram = kernels.apply_feature_map(
             xkerneltype,
-            x.T, lx, batch_size, is_multivariate=False)
+            x.T, lx,
+            batch_size,
+            is_multivariate=False,
+            catcont_split=catcont_split)
         y_gram = kernels.apply_feature_map(
             ykerneltype,
-            y.T, ly, batch_size, is_multivariate=True)
+            y.T, ly,
+            batch_size,
+            is_multivariate=True)
     assert x_gram.shape == (gram_dim, dx)
     assert not np.any(np.isnan(x_gram))
     assert y_gram.shape == (gram_dim, 1)

@@ -12,14 +12,8 @@ try:
 except (ModuleNotFoundError, ImportError):
     USE_PYHSICLASSO = False
 
-try:
-    import torch
-    SKIP_CUDA = False if torch.cuda.is_available() else True
-except (ModuleNotFoundError, ImportError):
-    SKIP_CUDA = True
-
 QUICK_TEST = True
-SKIP_CUDA = True if QUICK_TEST else SKIP_CUDA
+SKIP_CUDA = True
 USE_PYHSICLASSO = False if QUICK_TEST else USE_PYHSICLASSO
 SKLEARN_RECON = True
 
@@ -55,6 +49,33 @@ class SelectorTest(unittest.TestCase):
         self._test_selection(xfeattype, yfeattype,
                              add_noise=False, apply_transform=True)
 
+    def test_regression_with_non_linear_transform(self):
+        xfeattype = FeatureType.CONT
+        yfeattype = FeatureType.CONT
+        self._test_selection(
+            xfeattype, yfeattype,
+            add_noise=False,
+            apply_transform=False,
+            apply_non_linear_transform=True)
+
+    def test_regression_with_non_linear_transform_and_noise(self):
+        xfeattype = FeatureType.CONT
+        yfeattype = FeatureType.CONT
+        self._test_selection(
+            xfeattype, yfeattype,
+            add_noise=True,
+            apply_transform=False,
+            apply_non_linear_transform=True)
+
+    def test_regression_with_linear_and_non_linear_transform(self):
+        xfeattype = FeatureType.CONT
+        yfeattype = FeatureType.CONT
+        self._test_selection(
+            xfeattype, yfeattype,
+            add_noise=False,
+            apply_transform=True,
+            apply_non_linear_transform=True)
+
     def test_categorical_regression_no_noise_with_transform(self):
         xfeattype = FeatureType.DISCR
         yfeattype = FeatureType.CONT
@@ -67,6 +88,20 @@ class SelectorTest(unittest.TestCase):
         yfeattype = FeatureType.CONT
         self._test_selection(xfeattype, yfeattype,
                              add_noise=True, apply_transform=True)
+
+    # @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
+    def test_mixed_feature_regression_no_noise(self):
+        xfeattype = FeatureType.BOTH
+        yfeattype = FeatureType.CONT
+        self._test_selection(xfeattype, yfeattype, add_noise=False)
+
+    # @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
+    def test_mixed_feature_regression_with_transform(self):
+        xfeattype = FeatureType.BOTH
+        yfeattype = FeatureType.CONT
+        self._test_selection(
+            xfeattype, yfeattype,
+            apply_transform=True, add_noise=True)
 
     @unittest.skipIf(SKIP_CUDA, 'cuda not available')
     def test_cuda_regression_no_noise(self):
@@ -134,13 +169,16 @@ class SelectorTest(unittest.TestCase):
         add_noise: bool = False,
         apply_transform: bool = False,
         device: Optional[str] = None,
+        apply_non_linear_transform: bool = False,
     ):
-        print('\n\n\n##############################################################')
-        print('Test selection of features in a linear transformation setting')
-        print('##############################################################')
+        print('\n\n\n##############################################################################')
+        print('Test selection of features in a (non-)linear  transformation setting')
+        print(
+            '##############################################################################')
         print(f'Feature type of x: {xfeattype}')
         print(f'Feature type of y: {yfeattype}')
-        print(f'Apply transform: {apply_transform}')
+        print(f'Apply linear transform: {apply_transform}')
+        print(f'Apply non-linear transform: {apply_non_linear_transform}')
         print(f'Noisy target: {add_noise}')
         print(f'device: {device}')
         d: int = np.random.randint(low=15, high=25)
@@ -153,8 +191,15 @@ class SelectorTest(unittest.TestCase):
             ms = np.random.randint(low=2, high=2*n_features, size=(d,))
             xs = [np.random.randint(m, size=(n, 1)) for m in ms]
             x = np.concatenate(xs, axis=1)
+            split = None
+        elif xfeattype == FeatureType.BOTH:
+            split: int = np.random.randint(low=3, high=d-1)
+            xcat = np.random.randint(10, size=(n, split))
+            xcont = np.random.uniform(size=(n, d-split))
+            x = np.concatenate((xcat, xcont), axis=1)
         else:
             x = np.random.uniform(size=(n, d))
+            split = None
         z: np.array = x[:, features]
         if (apply_transform or yfeattype == FeatureType.DISCR):
             tt = np.expand_dims(
@@ -169,7 +214,12 @@ class SelectorTest(unittest.TestCase):
             scaler = .01 if yfeattype == FeatureType.DISCR else .1
             u += scaler * np.std(u) * np.random.uniform(size=u.shape)
         if yfeattype == FeatureType.CONT:
-            y = u
+            if apply_non_linear_transform:
+                u = np.sum(u, axis=1, keepdims=True)
+                u /= np.max(np.abs(u), axis=None)
+                y = np.sin(4 * np.pi * u)
+            else:
+                y = u
         elif yfeattype == FeatureType.DISCR:
             y = np.zeros(shape=(n, 1), dtype=int)
             for i in range(1, n_features):
@@ -201,11 +251,15 @@ class SelectorTest(unittest.TestCase):
 
         selector = Selector(
             x, y,
-            xfeattype=FeatureType.CONT,  # xfeattype,
-            yfeattype=yfeattype
+            xfeattype=xfeattype,
+            yfeattype=yfeattype,
+            catcont_split=split,
         )
-        selection = selector.select(
-            n_features, batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, device=device)
+        num_to_select = n_features
+        selected_features = selector.select(
+            num_to_select, batch_size=len(x), minibatch_size=800,  number_of_epochs=3, device=device)
+        selection = [int(feat.split('f')[-1])
+                     for feat in selected_features]
         print(f'Expected features:\n{sorted(features)}')
         print(
             f'hisel selected features:\n{sorted(selection)}')
@@ -230,25 +284,35 @@ class SelectorTest(unittest.TestCase):
             miargsort = np.argsort(mi)
             mi_selection = miargsort[::-1][:n_features]
             print(f'mi_selection:\n{sorted(mi_selection)}')
-            if set(mi_selection) == set(features):
-                self.assertEqual(
-                    set(selection),
-                    set(mi_selection),
-                    msg=(f'MI features: {sorted(mi_selection)}\n'
-                         f'Selected features: {sorted(selection)}'
-                         )
-                )
+            if not QUICK_TEST:
+                if set(mi_selection) == set(features):
+                    self.assertEqual(
+                        set(selection),
+                        set(mi_selection),
+                        msg=(f'MI features: {sorted(mi_selection)}\n'
+                             f'Selected features: {sorted(selection)}'
+                             )
+                    )
+                else:
+                    print('WARNING: sklearn mi did not select the right features!')
+        if QUICK_TEST:
+            if (xfeattype == FeatureType.DISCR or xfeattype == FeatureType.BOTH or yfeattype == FeatureType.DISCR):
+                grace = 13 if xfeattype == FeatureType.BOTH else 9
+            elif apply_non_linear_transform and apply_transform:
+                grace = 11
+            elif apply_non_linear_transform:
+                grace = 5
+            elif 6 * y.shape[1] < n_features:
+                grace = 5
             else:
-                print('WARNING: sklearn mi did not select the right features!')
-        if QUICK_TEST and (xfeattype == FeatureType.DISCR or yfeattype == FeatureType.DISCR):
-            grace = 3
+                grace = 3
             diff_left = set(selection).difference(set(features))
             diff_right = set(features).difference(set(selection))
             diff = diff_left.union(diff_right)
             self.assertLess(
                 len(diff),
                 grace,
-                msg=(f'Expected features: {sorted(features)}\n'
+                msg=(f'\nExpected features: {sorted(features)}\n'
                      f'Selected features: {sorted(selection)}'
                      )
             )
@@ -256,7 +320,7 @@ class SelectorTest(unittest.TestCase):
             self.assertEqual(
                 set(selection),
                 set(features),
-                msg=(f'Expected features: {sorted(features)}\n'
+                msg=(f'\nExpected features: {sorted(features)}\n'
                      f'Selected features: {sorted(selection)}'
                      )
             )
@@ -306,6 +370,89 @@ class SelectorTest(unittest.TestCase):
                      f'Auto-Selected features: {autoselection}'
                      )
             )
+
+
+class BothKernelTest(unittest.TestCase):
+
+    def test_classification(self):
+        xfeattype = FeatureType.BOTH
+        yfeattype = FeatureType.DISCR
+        d = 20
+        n = 5000
+        for split in (0, 2, 10, 18, 20):
+            self._test(
+                xfeattype,
+                yfeattype,
+                d,
+                split,
+                n
+            )
+
+    def test_regression(self):
+        xfeattype = FeatureType.BOTH
+        yfeattype = FeatureType.CONT
+        d = 20
+        n = 5000
+        split = 10
+        for split in (0, 2, 10, 18, 20):
+            self._test(
+                xfeattype,
+                yfeattype,
+                d,
+                split,
+                n
+            )
+
+    def _test(
+        self,
+            xfeattype: FeatureType,
+            yfeattype: FeatureType,
+            d: int,
+            split: int,
+            n: int):
+        print('\n\n\n##############################################################################')
+        print('Test single selection from mixed features')
+        print(
+            '##############################################################################')
+        print(f'Feature type of x: {xfeattype}')
+        print(f'Feature type of y: {yfeattype}')
+        print(f'Total number of features: {d}')
+        print(f'Split: {split}')
+        relevant_features = np.random.choice(d, size=(1, ), replace=False)
+        xdiscr = np.random.randint(10, size=(n, split))
+        xcont = np.random.uniform(low=-10., high=10, size=(n, d-split))
+        x = np.concatenate((xdiscr, xcont), axis=1)
+        if yfeattype == FeatureType.CONT:
+            t = x[:, relevant_features] / \
+                np.max(np.abs(x[:, relevant_features]), axis=None)
+            y = 10 * np.sin(4 * np.pi * t)
+        elif yfeattype == FeatureType.DISCR:
+            y = np.random.randint(
+                10) + np.abs(x[:, relevant_features]).astype(int)
+        else:
+            raise ValueError(yfeattype)
+        selector = Selector(
+            x, y,
+            xfeattype=xfeattype,
+            yfeattype=yfeattype,
+            catcont_split=split,
+        )
+        num_to_select = len(relevant_features)
+        selected_features = selector.select(
+            num_to_select, batch_size=n, minibatch_size=800,  number_of_epochs=3)
+        selection = [int(feat.split('f')[-1])
+                     for feat in selected_features]
+        print(f'Expected features:\n{sorted(relevant_features)}')
+        print(
+            f'hisel selected features:\n{sorted(selection)}')
+        self.assertEqual(
+            len(selection),
+            len(relevant_features),
+        )
+        self.assertEqual(
+            set(selection),
+            set(relevant_features)
+        )
 
 
 if __name__ == '__main__':

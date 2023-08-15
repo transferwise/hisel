@@ -8,32 +8,46 @@ from tqdm import tqdm
 class KernelType(Enum):
     RBF = 0
     DELTA = 1
+    BOTH = 2
 
 
 def featwise(
         x: np.ndarray,
         l: float,
         kernel_type: KernelType,
+        catcont_split: Optional[int] = None
 ) -> np.ndarray:
     if kernel_type == KernelType.RBF:
         return _rbf_featwise(x, l)
     elif kernel_type == KernelType.DELTA:
         return _delta_featwise(x)
+    elif kernel_type == KernelType.BOTH:
+        split = catcont_split if catcont_split else 0
+        # print(f'USING BOTH KERNEL TYPES; split: {split}')
+        g_cat = _delta_featwise(x[:split, :].astype(int))
+        g_cont = _rbf_featwise(x[split:, :], l)
+        g = np.concatenate((g_cat, g_cont), axis=0)
+        return g
     else:
         raise ValueError(kernel_type)
 
 
 def multivariate(
         x: np.ndarray,
-        y: np.ndarray,
         l: float,
         kernel_type: KernelType,
+        catcont_split: Optional[int] = None
 ) -> np.ndarray:
     if kernel_type == KernelType.RBF:
-        return _rbf_multivariate(x, y, l)
+        return _rbf_multivariate(x, l)
     elif kernel_type == KernelType.DELTA:
-        # Notice that only x is considered in the delta case
         return _delta_multivariate(x)
+    elif kernel_type == KernelType.BOTH:
+        split = catcont_split if catcont_split else 0
+        g_cat = _delta_multivariate(x[:split, :].astype(int))
+        g_cont = _rbf_multivariate(x[split:, :], l)
+        g = np.concatenate((g_cat, g_cont), axis=0)
+        return g
     else:
         raise ValueError(kernel_type)
 
@@ -80,20 +94,14 @@ def _delta_featwise(
 
 def _rbf_multivariate(
         x: np.ndarray,
-        y: np.ndarray,
         l: float
 ) -> np.ndarray:
     nx = x.shape[1]
-    ny = y.shape[1]
     x2 = np.tile(
         np.sum(np.square(x), axis=0),
-        (ny, 1)
-    )
-    y2 = np.tile(
-        np.sum(np.square(y), axis=0),
         (nx, 1)
     )
-    delta = x2.T + y2 - 2 * x.T @ y
+    delta = x2.T + x2 - 2 * x.T @ x
     gram = np.exp(-delta / (2 * l * l))
     return gram
 
@@ -157,8 +165,9 @@ def multivariate_phi(
         x: np.ndarray,
         l: float,
         kernel_type: KernelType,
+        catcont_split: Optional[int] = None
 ) -> np.ndarray:
-    gram = multivariate(x, x, l, kernel_type)
+    gram = multivariate(x, l, kernel_type, catcont_split)
     gram = np.expand_dims(gram, axis=0)
     return gram
 
@@ -193,9 +202,10 @@ def _run_batch(
         x: np.ndarray,
         l: float,
         is_multivariate: bool = False,
+        catcont_split: Optional[int] = None
 ) -> np.ndarray:
     phi = multivariate_phi if is_multivariate else featwise
-    grams: np.ndarray = _center_gram(phi(x, l, kernel_type))
+    grams: np.ndarray = _center_gram(phi(x, l, kernel_type, catcont_split))
     d, n, m = grams.shape
     assert n == m
     g: np.ndarray = np.reshape(grams, (d, n*m)).T
@@ -212,7 +222,8 @@ def _make_batches(x, batch_size):
 
 def _can_allocate(d: int, n: int, num_batches: int):
     try:
-        np.zeros((num_batches, d, n, n))
+        zeros = np.zeros((num_batches, d, n, n))
+        del zeros
     except np.core._exceptions._ArrayMemoryError as e:
         print('Number of features and number of samples are too big to allocate the feature map.'
               'Reduce the number of samples and try again')
@@ -225,6 +236,7 @@ def apply_feature_map(
         l: float,
         batch_size: int,
         is_multivariate: bool = False,
+        catcont_split: Optional[int] = None,
         no_parallel: bool = True
 ) -> np.ndarray:
     d, n = x.shape
@@ -237,11 +249,14 @@ def apply_feature_map(
             kernel_type,
             batch,
             l,
-            is_multivariate
+            is_multivariate,
+            catcont_split
         ) for batch in tqdm(batches)]
     else:
         partial_phis = Parallel(n_jobs=-1)([
-            delayed(_run_batch)(kernel_type, batch, l) for batch in tqdm(batches)
+            delayed(_run_batch)(kernel_type, batch,
+                                l, is_multivariate, catcont_split)
+            for batch in tqdm(batches)
         ])
     phi: np.ndarray = np.vstack(partial_phis)
     return phi
