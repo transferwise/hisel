@@ -21,7 +21,7 @@ def main():
         minibatch_size=500,
         number_of_epochs=3,
         use_preselection=True,
-        device=hisel.kernels.Device.GPU  # if cuda is available, otherwise CPU
+        device=hisel.kernels.Device.CPU  # if cuda is available you can pass GPU
     )
     results = hisel.feature_selection.select_features(
         xdf, yser, hsiclasso_parameters, categorical_search_parameters)

@@ -140,7 +140,7 @@ class Experiment:
 def test_regression_with_noise():
     xfeattype = FeatureType.CONT
     yfeattype = FeatureType.CONT
-    batch_size = 800
+    batch_size = 1000
     number_of_epochs = 1
     return Experiment(xfeattype, yfeattype,
                       add_noise=True,
@@ -151,7 +151,7 @@ def test_regression_with_noise():
 def test_regression_with_noise_with_transform():
     xfeattype = FeatureType.CONT
     yfeattype = FeatureType.CONT
-    batch_size = 800
+    batch_size = 1000
     number_of_epochs = 1
     return Experiment(xfeattype, yfeattype,
                       add_noise=True,
