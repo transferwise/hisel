@@ -8,7 +8,7 @@ import datetime
 
 PYHSICLASSO_RECON = True
 
-QUICK_TEST = False
+QUICK_TEST = True
 
 
 class KernelTest(unittest.TestCase):
