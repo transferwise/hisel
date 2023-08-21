@@ -13,6 +13,13 @@ scipy = ">=1.10"
 scikit-learn = ">=1.2.0"
 tqdm = "*"
 
+[tool.poetry.extras]
+cuda102 = ["cupy-cuda102"]
+cuda110 = ["cupy-cuda110"]
+cuda111 = ["cupy-cuda111"]
+cuda11x = ["cupy-cuda11x"]
+cuda12x = ["cupy-cuda12x"]
+
 
 [build-system]
 requires = ["poetry-core",  "numpy", "setuptools", "wheel"]

@@ -14,6 +14,37 @@ While on the Wise-VPN, in the environment where you intende to sue `hisel`, just
 pip install hisel --index-url=https://arti.tw.ee/artifactory/api/pypi/pypi-virtual/simple
 ```
 
+### Install from source
+
+#### Basic installation:
+Checkout the repo and navigate to the root directory. Then, 
+
+```
+poetry install
+```
+
+
+
+#### Installation with GPU support via [CuPy](https://cupy.dev/):
+You need to have cuda-toolkit installed and you need to know its version.
+To know that, you can do 
+```
+nvidia-smi
+```
+and read the cuda version from the top right corner of the table that is printed out. 
+Once you know your version of `cuda`, do 
+```
+poetry install -E cudaXXX
+```
+where `cudaXXX` is one of the following:
+`cuda102` if you have version 10.2;
+`cuda110` if you have version 11.0;
+`cuda111` if you have version 11.1;
+`cuda11x` if you have version 11.2 - 11.8;
+`cuda12x` if you have version 12.x.
+This aligns to the [installation guide of CuPy](https://docs.cupy.dev/en/stable/install.html#installing-cupy).
+
+
 
 ## Why is this cool?
 
