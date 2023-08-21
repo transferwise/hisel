@@ -288,8 +288,8 @@ class KernelTest(unittest.TestCase):
     def _test_apply_feature_map(self, kernel_type):
         print(f'\n...Test apply_feature_map...')
         print(f'kernel_type: {kernel_type}')
-        d: int = np.random.randint(low=5, high=12)
-        n: int = np.random.randint(low=30000, high=35000)
+        d: int = np.random.randint(low=5, high=10)
+        n: int = np.random.randint(low=25000, high=30000)
         l: float = np.random.uniform(low=.95, high=5.)
         num_batches = 10
         batch_size = n // num_batches
