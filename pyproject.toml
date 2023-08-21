@@ -12,6 +12,11 @@ pandas = ">=1.5.3"
 scipy = ">=1.10"
 scikit-learn = ">=1.2.0"
 tqdm = "*"
+cupy-cuda102 = [{version = "*", optional = true}]
+cupy-cuda110 = [{version = "*", optional = true}]
+cupy-cuda111 = [{version = "*", optional = true}]
+cupy-cuda11x = [{version = "*", optional = true}]
+cupy-cuda12x = [{version = "*", optional = true}]
 
 [tool.poetry.extras]
 cuda102 = ["cupy-cuda102"]
