@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 from hisel import hsic, select, categorical
+from hisel.kernels import Device
 from collections.abc import Mapping
 
 LassoSelection = select.Selection
@@ -41,7 +42,7 @@ class HSICLassoParameters(Parameters):
     minibatch_size: int = 500
     number_of_epochs: int = 4
     use_preselection: bool = True
-    device: Optional[str] = None
+    device: Device = Device.CPU
 
 
 continuous_dtypes = [

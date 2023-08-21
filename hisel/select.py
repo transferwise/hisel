@@ -4,18 +4,9 @@ from enum import Enum
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
-from hisel import lar, kernels
-from hisel.kernels import KernelType
+from hisel import lar, kernels, cudakernels
+from hisel.kernels import KernelType, Device
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
-TORCH_AVAILABLE = True
-try:
-    from hisel import torchkernels
-except (ImportError, ModuleNotFoundError):
-    TORCH_AVAILABLE = False
-try:
-    import torch
-except (ImportError, ModuleNotFoundError):
-    TORCH_AVAILABLE = False
 
 
 class FeatureType(Enum):
@@ -149,7 +140,7 @@ class HSICSelector:
                           batch_size: int = 1000,
                           minibatch_size: int = 200,
                           number_of_epochs: int = 1,
-                          device: Optional[str] = None,
+                          device: Device = Device.CPU,
                           ) -> np.ndarray:
         p: np.ndarray = np.zeros(
             (number_of_features, self.total_number_of_features))
@@ -182,10 +173,10 @@ class HSICSelector:
                 y,
                 number_of_features,
                 minibatch_size,
-                device,
                 self.xkerneltype,
                 self.ykerneltype,
                 catcont_split=self.catcont_split,
+                device=device,
             )
             p += _to_projection_matrix(
                 features,
@@ -202,7 +193,7 @@ class HSICSelector:
                batch_size: int = 10000,
                minibatch_size: int = 200,
                number_of_epochs: int = 1,
-               device: Optional[str] = None,
+               device: Device = Device.CPU,
                return_index: bool = False
                ) -> Union[Sequence[int], List[str]]:
         p = self.projection_matrix(
@@ -223,7 +214,7 @@ class HSICSelector:
                              batch_size: int = 1000,
                              minibatch_size: int = 200,
                              number_of_epochs: int = 1,
-                             device: Optional[str] = None,
+                             device: Device = Device.CPU,
                              ):
         number_of_features = self.total_number_of_features - 1
         features = self.select(
@@ -248,7 +239,7 @@ class HSICSelector:
                    minibatch_size: int = 200,
                    number_of_epochs: int = 1,
                    threshold: float = .01,
-                   device: Optional[str] = None,
+                   device: Device = Device.CPU,
                    lasso_path: Optional[pd.DataFrame] = None,
                    ) -> List[str]:
         if lasso_path is None:
@@ -303,7 +294,7 @@ def select(
     minibatch_size: int = 800,
     number_of_epochs: int = 3,
     use_preselection: bool = False,
-    device: Optional[str] = None,
+    device: Device = Device.CPU,
 ) -> Selection:
     n, d = x.shape
     if use_preselection:
@@ -421,10 +412,10 @@ def _run(
         y: np.ndarray,
         number_of_features: int,
         batch_size: int = 500,
-        device: Optional[str] = None,
         xkerneltype: Optional[KernelType] = None,
         ykerneltype: Optional[KernelType] = None,
         catcont_split: Optional[int] = None,
+        device: Device = Device.CPU,
 ):
     if xkerneltype is None:
         xkerneltype = KernelType.DELTA if x.dtype in (
@@ -441,34 +432,26 @@ def _run(
     ly = np.sqrt(dy)
     x_gram: np.ndarray
     y_gram: np.ndarray
-    if device is not None and not TORCH_AVAILABLE:
-        print(
-            f'You requested device: {device}, but torch is not available. Running on cpu instead with numpy')
-    if TORCH_AVAILABLE and device is not None:
-        x = torch.from_numpy(x)
-        y = torch.from_numpy(y)
-        x = x.to(device)
-        y = y.to(device)
-        xx = torchkernels.apply_feature_map(
-            xkerneltype,
-            x.T, lx, batch_size, is_multivariate=False)
-        yy = torchkernels.apply_feature_map(
-            ykerneltype,
-            y.T, ly, batch_size, is_multivariate=True)
-        x_gram = xx.detach().cpu().numpy()
-        y_gram = yy.detach().cpu().numpy()
+
+    gram_maker: Callable[[...], np.ndarray]
+    if device == Device.GPU:
+        gram_maker = cudakernels.apply_feature_map
     else:
-        x_gram = kernels.apply_feature_map(
-            xkerneltype,
-            x.T, lx,
-            batch_size,
-            is_multivariate=False,
-            catcont_split=catcont_split)
-        y_gram = kernels.apply_feature_map(
-            ykerneltype,
-            y.T, ly,
-            batch_size,
-            is_multivariate=True)
+        gram_maker = kernels.apply_feature_map
+
+    x_gram = gram_maker(
+        xkerneltype,
+        x.T, lx,
+        batch_size,
+        is_multivariate=False,
+        catcont_split=catcont_split,
+        device=device)
+    y_gram = gram_maker(
+        ykerneltype,
+        y.T, ly,
+        batch_size,
+        is_multivariate=True,
+        device=device)
     assert x_gram.shape == (gram_dim, dx)
     assert not np.any(np.isnan(x_gram))
     assert y_gram.shape == (gram_dim, 1)

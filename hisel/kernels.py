@@ -11,6 +11,12 @@ class KernelType(Enum):
     BOTH = 2
 
 
+class Device(Enum):
+    CPU = 0
+    PARALLEL_CPU = 1
+    GPU = 2
+
+
 def featwise(
         x: np.ndarray,
         l: float,
@@ -23,7 +29,6 @@ def featwise(
         return _delta_featwise(x)
     elif kernel_type == KernelType.BOTH:
         split = catcont_split if catcont_split else 0
-        # print(f'USING BOTH KERNEL TYPES; split: {split}')
         g_cat = _delta_featwise(x[:split, :].astype(int))
         g_cont = _rbf_featwise(x[split:, :], l)
         g = np.concatenate((g_cat, g_cont), axis=0)
@@ -237,14 +242,14 @@ def apply_feature_map(
         batch_size: int,
         is_multivariate: bool = False,
         catcont_split: Optional[int] = None,
-        no_parallel: bool = True
+        device: Device = Device.CPU,
 ) -> np.ndarray:
     d, n = x.shape
     b = min(n, batch_size)
     batches = _make_batches(x, batch_size)
     num_of_batches = len(batches)
     # _can_allocate(d, n, num_of_batches)
-    if no_parallel or num_of_batches < 2 or d*n < 100000:
+    if device != Device.PARALLEL_CPU or num_of_batches < 2 or d*n < 100000:
         partial_phis = [_run_batch(
             kernel_type,
             batch,

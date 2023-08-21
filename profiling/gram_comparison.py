@@ -2,19 +2,35 @@ import timeit
 import numpy as np
 from joblib import Parallel, delayed
 
-import hisel
+from hisel import kernels
+from hisel.kernels import Device
+from hisel import cudakernels
 
 
 def hisel_compute_gram_matrix(x, batch_size):
-    rbf_kernel = hisel.kernels.KernelType.RBF
+    rbf_kernel = kernels.KernelType.RBF
     l = 1.
-    gram = hisel.kernels.apply_feature_map(
+    gram = kernels.apply_feature_map(
         rbf_kernel,
         x,
         l,
         batch_size,
         is_multivariate=False,
-        no_parallel=True,
+        device=Device.CPU,
+    )
+    return gram
+
+
+def cudahisel_compute_gram_matrix(x, batch_size):
+    rbf_kernel = kernels.KernelType.RBF
+    l = 1.
+    gram = cudakernels.apply_feature_map(
+        rbf_kernel,
+        x,
+        l,
+        batch_size,
+        is_multivariate=False,
+        device=Device.GPU,
     )
     return gram
 
@@ -149,8 +165,8 @@ class PyHSICLasso:
 
 class Experiment:
     def __init__(self,
-                 num_samples=1000,
-                 num_features=500,
+                 num_samples=5000,
+                 num_features=200,
                  batch_size=1000,
                  ):
         self.num_samples = num_samples
@@ -161,6 +177,9 @@ class Experiment:
 
     def run_hisel(self):
         return hisel_compute_gram_matrix(self.x, self.batch_size)
+
+    def run_cudahisel(self):
+        return cudahisel_compute_gram_matrix(self.x, self.batch_size)
 
     def run_pyhsiclasso(self):
         return PyHSICLasso.compute_gram_matrix(
@@ -179,6 +198,15 @@ def main():
         number=3)
     print('\n#################################################################')
     print(f'# hisel_time: {round(hisel_time, 6)}')
+    print('#################################################################\n\n')
+
+    # Compute Gram matrix using hisel
+    cudahisel_time = timeit.timeit(
+        'experiment.run_cudahisel()',
+        globals=globals(),
+        number=3)
+    print('\n#################################################################')
+    print(f'# cudahisel_time: {round(cudahisel_time, 6)}')
     print('#################################################################\n\n')
 
     # Compute Gram matrix using pyHSICLasso

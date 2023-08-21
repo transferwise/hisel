@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import special_ortho_group
 
 from hisel.select import HSICSelector as Selector, FeatureType
+from hisel.kernels import Device
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 
 USE_PYHSICLASSO = True
@@ -13,7 +14,7 @@ except (ModuleNotFoundError, ImportError):
     USE_PYHSICLASSO = False
 
 QUICK_TEST = True
-SKIP_CUDA = True
+SKIP_CUDA = False
 USE_PYHSICLASSO = False if QUICK_TEST else USE_PYHSICLASSO
 SKLEARN_RECON = True
 
@@ -108,27 +109,27 @@ class SelectorTest(unittest.TestCase):
         xfeattype = FeatureType.CONT
         yfeattype = FeatureType.CONT
         self._test_selection(xfeattype, yfeattype,
-                             add_noise=False, device='cuda')
+                             add_noise=False, device=Device.GPU)
 
     @unittest.skipIf(SKIP_CUDA, 'cuda not available')
     def test_cuda_regression_with_noise(self):
         xfeattype = FeatureType.CONT
         yfeattype = FeatureType.CONT
         self._test_selection(xfeattype, yfeattype,
-                             add_noise=True, device='cuda')
+                             add_noise=True, device=Device.GPU)
 
     @unittest.skipIf(SKIP_CUDA, 'cuda not available')
     def test_cuda_regression_no_noise_with_transform(self):
         xfeattype = FeatureType.CONT
         yfeattype = FeatureType.CONT
         self._test_selection(xfeattype, yfeattype,
-                             add_noise=False, device='cuda', apply_transform=True)
+                             add_noise=False, device=Device.GPU, apply_transform=True)
 
     @unittest.skipIf(SKIP_CUDA, 'cuda not available')
     def test_cuda_regression_with_noise_with_transform(self):
         xfeattype = FeatureType.CONT
         yfeattype = FeatureType.CONT
-        self._test_selection(xfeattype, yfeattype, add_noise=True, device='cuda',
+        self._test_selection(xfeattype, yfeattype, add_noise=True, device=Device.GPU,
                              apply_transform=True)
 
     def test_classification_no_noise(self):
@@ -153,14 +154,14 @@ class SelectorTest(unittest.TestCase):
         xfeattype = FeatureType.CONT
         yfeattype = FeatureType.DISCR
         self._test_selection(xfeattype, yfeattype,
-                             add_noise=False, device='cuda')
+                             add_noise=False, device=Device.GPU)
 
     @unittest.skipIf(SKIP_CUDA, 'cuda not available')
     def test_cuda_classification_with_noise(self):
         xfeattype = FeatureType.CONT
         yfeattype = FeatureType.DISCR
         self._test_selection(xfeattype, yfeattype,
-                             add_noise=True, device='cuda')
+                             add_noise=True, device=Device.GPU)
 
     def _test_selection(
         self,
@@ -168,7 +169,7 @@ class SelectorTest(unittest.TestCase):
         yfeattype: FeatureType,
         add_noise: bool = False,
         apply_transform: bool = False,
-        device: Optional[str] = None,
+        device: Device = Device.CPU,
         apply_non_linear_transform: bool = False,
     ):
         print('\n\n\n##############################################################################')

@@ -2,12 +2,13 @@ import unittest
 import numpy as np
 from sklearn.gaussian_process.kernels import RBF
 from hisel import kernels
+from hisel.kernels import Device
 import datetime
 
 
 PYHSICLASSO_RECON = True
 
-QUICK_TEST = True
+QUICK_TEST = False
 
 
 class KernelTest(unittest.TestCase):
@@ -287,35 +288,21 @@ class KernelTest(unittest.TestCase):
     def _test_apply_feature_map(self, kernel_type):
         print(f'\n...Test apply_feature_map...')
         print(f'kernel_type: {kernel_type}')
-        d: int = np.random.randint(low=5, high=10)
-        n: int = np.random.randint(low=20000, high=35000)
+        d: int = np.random.randint(low=5, high=12)
+        n: int = np.random.randint(low=30000, high=35000)
         l: float = np.random.uniform(low=.95, high=5.)
         num_batches = 10
         batch_size = n // num_batches
+        gram_dim: int = num_batches * batch_size**2
         if kernel_type == kernels.KernelType.DELTA:
             x = np.random.randint(10, size=(d, n))
         else:
             x = np.random.uniform(size=(d, n))
 
-        # Execution with parallelization enabled
-        t0 = datetime.datetime.now()
-        phi: np.ndarray = kernels.apply_feature_map(
-            kernel_type, x, l, batch_size
-        )
-        t1 = datetime.datetime.now()
-        dt_parallel = t1 - t0
-        parallel_runtime = dt_parallel.seconds + 1e-6 * dt_parallel.microseconds
-        gram_dim: int = num_batches * batch_size**2
-        self.assertEqual(
-            phi.shape,
-            (gram_dim, d)
-        )
-        print(f'runtime with parallel execution: {parallel_runtime} seconds')
-
         # Execution with parallelization disabled
         t0 = datetime.datetime.now()
         phi_no_parallel = kernels.apply_feature_map(
-            kernel_type, x, l, batch_size, no_parallel=True
+            kernel_type, x, l, batch_size, device=Device.CPU
         )
         t1 = datetime.datetime.now()
         dt_serial = t1 - t0
@@ -326,6 +313,20 @@ class KernelTest(unittest.TestCase):
             (gram_dim, d)
         )
         print(f'runtime with serial execution: {serial_runtime} seconds')
+
+        # Execution with parallelization enabled
+        t0 = datetime.datetime.now()
+        phi: np.ndarray = kernels.apply_feature_map(
+            kernel_type, x, l, batch_size, device=Device.PARALLEL_CPU
+        )
+        t1 = datetime.datetime.now()
+        dt_parallel = t1 - t0
+        parallel_runtime = dt_parallel.seconds + 1e-6 * dt_parallel.microseconds
+        self.assertEqual(
+            phi.shape,
+            (gram_dim, d)
+        )
+        print(f'runtime with parallel execution: {parallel_runtime} seconds')
 
         # check that serial and parallel execution yield the same results
         self.assertTrue(
