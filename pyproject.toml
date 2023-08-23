@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hisel"
-version = "0.6.0"
+version = "1.0.0"
 description = ""
 authors = ["claudio <claudio.bellani@transferwise.com>"]
 readme = "README.md"
@@ -12,6 +12,18 @@ pandas = ">=1.5.3"
 scipy = ">=1.10"
 scikit-learn = ">=1.2.0"
 tqdm = "*"
+cupy-cuda102 = [{version = "*", optional = true}]
+cupy-cuda110 = [{version = "*", optional = true}]
+cupy-cuda111 = [{version = "*", optional = true}]
+cupy-cuda11x = [{version = "*", optional = true}]
+cupy-cuda12x = [{version = "*", optional = true}]
+
+[tool.poetry.extras]
+cuda102 = ["cupy-cuda102"]
+cuda110 = ["cupy-cuda110"]
+cuda111 = ["cupy-cuda111"]
+cuda11x = ["cupy-cuda11x"]
+cuda12x = ["cupy-cuda12x"]
 
 
 [build-system]

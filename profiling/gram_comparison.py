@@ -1,20 +1,39 @@
+from dataclasses import make_dataclass
 import timeit
 import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
-import hisel
+from hisel import kernels
+from hisel.kernels import Device
+from hisel import cudakernels
 
 
 def hisel_compute_gram_matrix(x, batch_size):
-    rbf_kernel = hisel.kernels.KernelType.RBF
+    rbf_kernel = kernels.KernelType.RBF
     l = 1.
-    gram = hisel.kernels.apply_feature_map(
+    gram = kernels.apply_feature_map(
         rbf_kernel,
         x,
         l,
         batch_size,
         is_multivariate=False,
-        no_parallel=True,
+        device=Device.CPU,
+    )
+    return gram
+
+
+def cudahisel_compute_gram_matrix(x, batch_size):
+    rbf_kernel = kernels.KernelType.RBF
+    l = 1.
+    gram = cudakernels.apply_feature_map(
+        rbf_kernel,
+        x,
+        l,
+        batch_size,
+        is_multivariate=False,
+        device=Device.GPU,
     )
     return gram
 
@@ -42,11 +61,11 @@ class PyHSICLasso:
                     1,
                     n,
                     discarded)
-                for k in range(d)
+                for k in tqdm(range(d))
             ])
         else:
             result = []
-            for k in range(d):
+            for k in tqdm(range(d)):
                 X = PyHSICLasso.parallel_compute_kernel(
                     x[[k], :], 'Gaussian', k, batch_size, 1, n, discarded)
                 result.append(X)
@@ -149,8 +168,8 @@ class PyHSICLasso:
 
 class Experiment:
     def __init__(self,
-                 num_samples=1000,
-                 num_features=500,
+                 num_samples=5000,
+                 num_features=200,
                  batch_size=1000,
                  ):
         self.num_samples = num_samples
@@ -162,29 +181,86 @@ class Experiment:
     def run_hisel(self):
         return hisel_compute_gram_matrix(self.x, self.batch_size)
 
+    def run_cudahisel(self):
+        return cudahisel_compute_gram_matrix(self.x, self.batch_size)
+
     def run_pyhsiclasso(self):
         return PyHSICLasso.compute_gram_matrix(
             self.x, self.batch_size, False)
 
 
-experiment = Experiment()
+def test_num_samples():
+    num_features = 300
+    batch_size = 800
+    num_samples = 1600 * np.arange(2, 8, dtype=int)
+    num_runs = 8
+    data = []
+    Result = make_dataclass("Result",
+                            [
+                                ("num_samples", int),
+                                ("num_features", int),
+                                ("batch_size", int),
+                                ("hisel_cpu_time", float),
+                                ("hisel_gpu_time", float),
+                                ("pyhsiclasso_time", float),
+                            ])
+    for n in num_samples:
+        experiment = Experiment(
+            n, num_features, batch_size)
+        hisel_cpu_time = timeit.timeit(
+            'experiment.run_hisel()',
+            globals=locals(),
+            number=num_runs)
+        hisel_gpu_time = timeit.timeit(
+            'experiment.run_cudahisel()',
+            globals=locals(),
+            number=num_runs)
+        pyhsiclasso_time = timeit.timeit(
+            'experiment.run_pyhsiclasso()',
+            globals=locals(),
+            number=num_runs)
+        del experiment
+        result = Result(
+            n,
+            num_features,
+            batch_size,
+            hisel_cpu_time,
+            hisel_gpu_time,
+            pyhsiclasso_time
+        )
+        print(result)
+        data.append(result)
+    df = pd.DataFrame(data)
+    df.to_csv("gram_runtimes_by_num_samples.csv", index=False)
+    print(df)
 
 
 def main():
 
+    experiment = Experiment()
+
     # Compute Gram matrix using hisel
     hisel_time = timeit.timeit(
         'experiment.run_hisel()',
-        globals=globals(),
+        globals=locals(),
         number=3)
     print('\n#################################################################')
     print(f'# hisel_time: {round(hisel_time, 6)}')
     print('#################################################################\n\n')
 
+    # Compute Gram matrix using hisel
+    cudahisel_time = timeit.timeit(
+        'experiment.run_cudahisel()',
+        globals=locals(),
+        number=3)
+    print('\n#################################################################')
+    print(f'# cudahisel_time: {round(cudahisel_time, 6)}')
+    print('#################################################################\n\n')
+
     # Compute Gram matrix using pyHSICLasso
     pyhsiclasso_time = timeit.timeit(
         'experiment.run_pyhsiclasso()',
-        globals=globals(),
+        globals=locals(),
         number=3)
     print('\n#################################################################')
     print(f'# pyhsiclasso_time: {round(pyhsiclasso_time, 6)}')

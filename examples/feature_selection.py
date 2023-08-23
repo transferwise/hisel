@@ -3,6 +3,7 @@ import hisel
 
 
 def main():
+    # Minimial example of `hisel` usage
     df = pd.read_csv('mydata.csv')
     xdf = df.iloc[:, :-1]
     yser = df.iloc[:, -1]
