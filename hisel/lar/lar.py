@@ -98,4 +98,9 @@ def solve(
 
     lassopath = path[:k, :].toarray()
 
+    del xx
+    del gamma
+    del g
+    del beta
+
     return active, lassopath
