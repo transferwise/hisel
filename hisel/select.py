@@ -427,6 +427,7 @@ def _run(
     ny, dy = y.shape
     assert nx == ny
     num_batches: int = nx // batch_size
+    assert num_batches >= 1
     gram_dim: int = num_batches * batch_size**2
     lx = 1.
     ly = np.sqrt(dy)

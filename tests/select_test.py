@@ -19,15 +19,19 @@ USE_PYHSICLASSO = False if QUICK_TEST else USE_PYHSICLASSO
 SKLEARN_RECON = True
 
 
-def pyhsiclasso(x, y, xfeattype,  yfeattype, n_features: int, batch_size=500):
+def pyhsiclasso(x, y, xfeattype,  yfeattype, n_features: int, minibatch_size=500):
     lasso = pyHSICLasso.HSICLasso()
     lasso.X_in = x.T
     lasso.Y_in = y.T
     discrete_x = False  # xfeattype == FeatureType.DISCR
     if yfeattype == FeatureType.DISCR:
-        lasso.classification(n_features, B=batch_size, discrete_x=discrete_x)
+        lasso.classification(n_features,
+                             B=minibatch_size,
+                             discrete_x=discrete_x)
     else:
-        lasso.regression(n_features, B=batch_size, discrete_x=discrete_x)
+        lasso.regression(n_features,
+                         B=minibatch_size,
+                         discrete_x=discrete_x)
     return lasso.A
 
 
@@ -90,13 +94,11 @@ class SelectorTest(unittest.TestCase):
         self._test_selection(xfeattype, yfeattype,
                              add_noise=True, apply_transform=True)
 
-    # @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_mixed_feature_regression_no_noise(self):
         xfeattype = FeatureType.BOTH
         yfeattype = FeatureType.CONT
         self._test_selection(xfeattype, yfeattype, add_noise=False)
 
-    # @unittest.skipIf(QUICK_TEST, 'Skipping for faster test')
     def test_mixed_feature_regression_with_transform(self):
         xfeattype = FeatureType.BOTH
         yfeattype = FeatureType.CONT
@@ -183,7 +185,10 @@ class SelectorTest(unittest.TestCase):
         print(f'Noisy target: {add_noise}')
         print(f'device: {device}')
         d: int = np.random.randint(low=15, high=25)
-        n: int = np.random.randint(low=5000, high=10000)
+        minibatch_size: int = np.random.randint(low=500, high=1000)
+        n: int = minibatch_size * \
+            (np.random.randint(low=5000, high=10000) // minibatch_size)
+        batch_size: int = n
         n_features: int = d // 3
         features = list(np.random.choice(d, replace=False, size=n_features))
         x: np.ndarray
@@ -231,7 +236,7 @@ class SelectorTest(unittest.TestCase):
         if USE_PYHSICLASSO and (xfeattype == FeatureType.CONT):
             print('Using pyHSICLasso for reconciliation purposes')
             pyhsiclasso_selection = pyhsiclasso(
-                x, y, xfeattype, yfeattype, n_features, 500)
+                x, y, xfeattype, yfeattype, n_features, minibatch_size)
             print(
                 f'pyHSICLasso selected features:\n{sorted(pyhsiclasso_selection)}')
             self.assertEqual(
@@ -258,7 +263,7 @@ class SelectorTest(unittest.TestCase):
         )
         num_to_select = n_features
         selected_features = selector.select(
-            num_to_select, batch_size=len(x), minibatch_size=800,  number_of_epochs=3, device=device)
+            num_to_select, batch_size=batch_size, minibatch_size=minibatch_size,  number_of_epochs=3, device=device)
         selection = [int(feat.split('f')[-1])
                      for feat in selected_features]
         print(f'Expected features:\n{sorted(features)}')

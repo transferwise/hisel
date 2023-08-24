@@ -21,7 +21,10 @@ def pyhsiclasso(x, y, xfeattype,  yfeattype,
     else:
         lasso.regression(n_features, B=batch_size,
                          discrete_x=discrete_x, M=number_of_epochs)
-    return lasso.A
+
+    selection = np.array(lasso.A, copy=True)
+    del lasso
+    return selection
 
 
 class Experiment:
@@ -34,10 +37,9 @@ class Experiment:
         apply_transform: bool = False,
         batch_size: int = 500,
         number_of_epochs: int = 3,
-        device: Device = Device.CPU,
     ):
         print('\n\n\n##############################################################')
-        print('Test selection of features in a linear transformation setting')
+        print('# Test selection of features in a linear transformation setting')
         print('##############################################################')
         print(f'Feature type of x: {xfeattype}')
         print(f'Feature type of y: {yfeattype}')
@@ -45,11 +47,11 @@ class Experiment:
         print(f'Noisy target: {add_noise}')
         print(f'Number of epochs: {number_of_epochs}')
         print(f'Batch size: {batch_size}')
-        print(f'device: {device}')
 
-        d: int = np.random.randint(low=50, high=100)
-        n: int = np.random.randint(low=15000, high=20000)
-        n_features: int = d // 6
+        d: int = np.random.randint(low=300, high=400)
+        n: int = batch_size * \
+            (np.random.randint(low=10000, high=12000) // batch_size)
+        n_features: int = d // np.random.randint(low=15, high=20)
         features = list(np.random.choice(d, replace=False, size=n_features))
         x: np.ndarray
         y: np.ndarray
@@ -73,7 +75,7 @@ class Experiment:
             scaler = .01 if yfeattype == FeatureType.DISCR else .1
             u += scaler * np.std(u) * np.random.uniform(size=u.shape)
         if yfeattype == FeatureType.CONT:
-            y = u
+            y = np.sum(u, axis=1, keepdims=True)
         elif yfeattype == FeatureType.DISCR:
             y = np.zeros(shape=(n, 1), dtype=int)
             for i in range(1, n_features):
@@ -81,7 +83,6 @@ class Experiment:
         else:
             raise ValueError(yfeattype)
 
-        self.device = device
         self.number_of_epochs = number_of_epochs
         self.batch_size = batch_size
         self.d = d
@@ -110,7 +111,13 @@ class Experiment:
 
         return pyhsiclasso_selection
 
-    def run_hisel(self):
+    def run_hisel_on_cpu(self):
+        self._run_hisel(Device.CPU)
+
+    def run_hisel_on_gpu(self):
+        self._run_hisel(Device.GPU)
+
+    def _run_hisel(self, device: Device = Device.CPU):
         selector = Selector(
             self.x, self.y,
             xfeattype=self.xfeattype,
@@ -121,7 +128,7 @@ class Experiment:
             batch_size=len(self.x),
             minibatch_size=self.batch_size,
             number_of_epochs=self.number_of_epochs,
-            device=self.device,
+            device=device,
             return_index=True,
         )
         print(
@@ -134,16 +141,18 @@ class Experiment:
             print(
                 f'WARNING: hisel did not perform an exact selection:\n{msg}')
 
+        del selector
         return selection
 
 
 def test_regression_with_noise():
     xfeattype = FeatureType.CONT
     yfeattype = FeatureType.CONT
-    batch_size = 1000
+    batch_size = 750
     number_of_epochs = 1
     return Experiment(xfeattype, yfeattype,
                       add_noise=True,
+                      apply_transform=False,
                       batch_size=batch_size,
                       number_of_epochs=number_of_epochs)
 
@@ -151,34 +160,43 @@ def test_regression_with_noise():
 def test_regression_with_noise_with_transform():
     xfeattype = FeatureType.CONT
     yfeattype = FeatureType.CONT
-    batch_size = 1000
+    batch_size = 750
     number_of_epochs = 1
     return Experiment(xfeattype, yfeattype,
                       add_noise=True,
+                      apply_transform=True,
                       batch_size=batch_size,
                       number_of_epochs=number_of_epochs)
 
 
-regression_experiment = test_regression_with_noise()
-
-
 def main():
+    regression_experiment = test_regression_with_noise()
+
     pyhsiclasso_time = timeit.timeit(
         'regression_experiment.run_pyhsiclasso()',
-        number=3,
-        globals=globals(),
+        number=1,
+        globals=locals(),
     )
     print('\n#################################################################')
     print(f'# pyhsiclasso_time: {round(pyhsiclasso_time, 6)}')
     print('#################################################################\n\n\n')
 
-    hisel_time = timeit.timeit(
-        'regression_experiment.run_hisel()',
-        number=3,
-        globals=globals(),
+    hisel_cpu_time = timeit.timeit(
+        'regression_experiment.run_hisel_on_cpu()',
+        number=1,
+        globals=locals(),
     )
     print('\n#################################################################')
-    print(f'# hisel_time: {round(hisel_time, 6)}')
+    print(f'# hisel_cpu_time: {round(hisel_cpu_time, 6)}')
+    print('#################################################################\n\n')
+
+    hisel_gpu_time = timeit.timeit(
+        'regression_experiment.run_hisel_on_gpu()',
+        number=1,
+        globals=locals(),
+    )
+    print('\n#################################################################')
+    print(f'# hisel_gpu_time: {round(hisel_gpu_time, 6)}')
     print('#################################################################\n\n')
 
 

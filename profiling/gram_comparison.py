@@ -193,7 +193,7 @@ def test_num_samples():
     num_features = 300
     batch_size = 800
     num_samples = 1600 * np.arange(2, 8, dtype=int)
-    num_runs = 8
+    num_runs = 5
     data = []
     Result = make_dataclass("Result",
                             [
@@ -211,14 +211,17 @@ def test_num_samples():
             'experiment.run_hisel()',
             globals=locals(),
             number=num_runs)
+        hisel_cpu_time /= num_runs
         hisel_gpu_time = timeit.timeit(
             'experiment.run_cudahisel()',
             globals=locals(),
             number=num_runs)
+        hisel_gpu_time /= num_runs
         pyhsiclasso_time = timeit.timeit(
             'experiment.run_pyhsiclasso()',
             globals=locals(),
             number=num_runs)
+        pyhsiclasso_time /= num_runs
         del experiment
         result = Result(
             n,
