@@ -53,6 +53,13 @@ via
 and 
 via 
 [pyHSICLasso](https://pypi.org/project/pyHSICLasso/).
+The performance has been measured 
+on the computation 
+of Gram matrices required 
+by HSIC Lasso 
+for the selection 
+from a dataset of 300 features 
+with as many samples as reported on the x-axis. 
 
 ![gramtimes](gramtimes.png)
 
