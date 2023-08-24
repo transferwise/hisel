@@ -2,9 +2,6 @@
 import numpy as np
 from scipy.sparse import lil_matrix
 
-DTYPEf = np.float64
-DTYPEi = np.int64
-
 
 def solve(
         x: np.ndarray,
@@ -22,11 +19,11 @@ def solve(
     n, d = x.shape
     xx: np.ndarray = x.T @ x
     g: np.ndarray = x.T @ y
-    beta: np.ndarray = np.zeros((d, 1), dtype=DTYPEf)
-    gb: np.ndarray = np.zeros((d, 1), dtype=DTYPEf)
+    beta: np.ndarray = np.zeros((d, 1), dtype=float)
+    gb: np.ndarray = np.zeros((d, 1), dtype=float)
     c: np.ndarray = np.array(g, copy=True)
-    gw: np.ndarray = np.zeros((d, 1), dtype=DTYPEf)
-    gamma: np.ndarray = np.zeros((d+1, 1), dtype=DTYPEf)
+    gw: np.ndarray = np.zeros((d, 1), dtype=float)
+    gamma: np.ndarray = np.zeros((d+1, 1), dtype=float)
     maxc: float
     j: int
     t: int
@@ -52,7 +49,7 @@ def solve(
     while np.sum(c[active]) / num_active >= 1e-12 and num_active <= dim_z:
         w, _, _, _ = np.linalg.lstsq(
             x[:, active].T @  x[:, active],
-            np.ones((num_active, 1), dtype=DTYPEf),
+            np.ones((num_active, 1), dtype=float),
             rcond=None
         )
         gw = x.T @ x[:, active] @ w
