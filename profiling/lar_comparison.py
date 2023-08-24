@@ -1,4 +1,6 @@
-import timeit
+import pstats
+from pstats import SortKey
+import cProfile
 import numpy as np
 import cupy as cp
 from hisel import lar
@@ -40,33 +42,32 @@ def main():
     d = 500
     a = 100
     experiment = Experiment(n, d, a)
-    hisel_time = timeit.timeit(
+    cProfile.runctx(
         'experiment.run_hisel()',
-        globals=locals(),
-        number=1
+        locals=locals(),
+        globals=globals(),
+        filename='hisel_lar',
     )
-    print('\n#################################################################')
-    print(f'# hisel_time: {round(hisel_time, 6)}')
-    print('#################################################################\n\n')
+    hisel_lar = pstats.Stats('hisel_lar')
+    hisel_lar.sort_stats(SortKey.CUMULATIVE).print_stats(20)
 
-    hisel_gpu_time = timeit.timeit(
+    cProfile.runctx(
         'experiment.run_hisel_from_cupy_arrays()',
-        globals=locals(),
-        number=1
+        locals=locals(),
+        globals=globals(),
+        filename='hisel_lar_from_cupy_arrays',
     )
-    print('\n#################################################################')
-    print(f'# hisel_gpu_time: {round(hisel_gpu_time, 6)}')
-    print('#################################################################\n\n')
+    hisel_lar_from_cupy_arrays = pstats.Stats('hisel_lar_from_cupy_arrays')
+    hisel_lar_from_cupy_arrays.sort_stats(SortKey.CUMULATIVE).print_stats(20)
 
-    pyhsiclasso_time = timeit.timeit(
+    cProfile.runctx(
         'experiment.run_pyhsiclasso()',
-        globals=locals(),
-        number=1
+        locals=locals(),
+        globals=globals(),
+        filename='pyhsiclasso_lar',
     )
-
-    print('\n#################################################################')
-    print(f'# pyhsiclasso_time: {round(pyhsiclasso_time, 6)}')
-    print('#################################################################\n\n')
+    pyhsiclasso_lar = pstats.Stats('pyhsiclasso_lar')
+    pyhsiclasso_lar.sort_stats(SortKey.CUMULATIVE).print_stats(20)
 
 
 if __name__ == '__main__':
