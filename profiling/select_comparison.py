@@ -1,4 +1,3 @@
-from typing import Optional
 import timeit
 import numpy as np
 from scipy.stats import special_ortho_group
@@ -9,7 +8,7 @@ from hisel.kernels import Device
 import pyHSICLasso
 
 
-def pyhsiclasso(x, y, xfeattype,  yfeattype,
+def pyhsiclasso(x, y, xfeattype, yfeattype,
                 n_features: int, batch_size: int = 500, number_of_epochs: int = 3):
     lasso = pyHSICLasso.HSICLasso()
     lasso.X_in = x.T

@@ -19,7 +19,7 @@ USE_PYHSICLASSO = False if QUICK_TEST else USE_PYHSICLASSO
 SKLEARN_RECON = True
 
 
-def pyhsiclasso(x, y, xfeattype,  yfeattype, n_features: int, minibatch_size=500):
+def pyhsiclasso(x, y, xfeattype, yfeattype, n_features: int, minibatch_size=500):
     lasso = pyHSICLasso.HSICLasso()
     lasso.X_in = x.T
     lasso.Y_in = y.T
@@ -263,7 +263,11 @@ class SelectorTest(unittest.TestCase):
         )
         num_to_select = n_features
         selected_features = selector.select(
-            num_to_select, batch_size=batch_size, minibatch_size=minibatch_size,  number_of_epochs=3, device=device)
+            num_to_select,
+            batch_size=batch_size,
+            minibatch_size=minibatch_size,
+            number_of_epochs=3,
+            device=device)
         selection = [int(feat.split('f')[-1])
                      for feat in selected_features]
         print(f'Expected features:\n{sorted(features)}')
@@ -335,7 +339,11 @@ class SelectorTest(unittest.TestCase):
             return
         # Test autoselection - We do not provide the number of features that should be selected
         autoselected_features = selector.autoselect(
-            batch_size=len(x) // 4, minibatch_size=400,  number_of_epochs=3, threshold=3e-2, device=device)
+            batch_size=len(x) // 4,
+            minibatch_size=400,
+            number_of_epochs=3,
+            threshold=3e-2,
+            device=device)
         autoselection = [int(feat.split('f')[-1])
                          for feat in autoselected_features]
         print(
@@ -445,7 +453,7 @@ class BothKernelTest(unittest.TestCase):
         )
         num_to_select = len(relevant_features)
         selected_features = selector.select(
-            num_to_select, batch_size=n, minibatch_size=800,  number_of_epochs=3)
+            num_to_select, batch_size=n, minibatch_size=800, number_of_epochs=3)
         selection = [int(feat.split('f')[-1])
                      for feat in selected_features]
         print(f'Expected features:\n{sorted(relevant_features)}')

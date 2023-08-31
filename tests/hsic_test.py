@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-from sklearn.gaussian_process.kernels import RBF
 from scipy.stats import special_ortho_group
 from hisel import hsic
 from hisel.kernels import KernelType

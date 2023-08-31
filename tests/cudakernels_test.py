@@ -9,7 +9,7 @@ CUPY_AVAILABLE = True
 try:
     import cupy as cp
 except (ModuleNotFoundError, ImportError):
-    print(f'Could not import cupy!')
+    print('Could not import cupy!')
     cp = np
     CUPY_AVAILABLE = False
 
@@ -17,7 +17,7 @@ except (ModuleNotFoundError, ImportError):
 class CudaKernelTest(unittest.TestCase):
 
     def test_rbf(self):
-        print(f'\n...Test RBF...')
+        print('\n...Test RBF...')
         kernel_type = kernels.KernelType.RBF
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -36,7 +36,7 @@ class CudaKernelTest(unittest.TestCase):
         for i in range(d):
             k[i, :, :] = rbf(x[[i], :].T)
             g_[i, :, :] = cudakernels.multivariate(
-                x_[[i], :],  l, kernel_type)
+                x_[[i], :], l, kernel_type)
 
         f_ = cudakernels.featwise(x_, l, kernel_type)
         ff = kernels.featwise(x, l, kernel_type)
@@ -62,7 +62,7 @@ class CudaKernelTest(unittest.TestCase):
             ))
 
     def test_delta(self):
-        print(f'\n...Test DELTA...')
+        print('\n...Test DELTA...')
         kernel_type = kernels.KernelType.DELTA
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -100,7 +100,7 @@ class CudaKernelTest(unittest.TestCase):
             ))
 
     def test_both(self):
-        print(f'\n...Test BOTH...')
+        print('\n...Test BOTH...')
         kernel_type = kernels.KernelType.BOTH
         d: int = np.random.randint(low=6, high=15)
         split: int = np.random.randint(low=2, high=d-1)
@@ -131,7 +131,7 @@ class CudaKernelTest(unittest.TestCase):
         for i in range(split, d):
             k[i, :, :] = rbf(x[[i], :].T)
             g_[i, :, :] = kernels.multivariate(
-                x_[[i], :],  l, kernels.KernelType.RBF)
+                x_[[i], :], l, kernels.KernelType.RBF)
 
         f_ = cudakernels.featwise(x_, l, kernel_type, split)
         ff = kernels.featwise(x, l, kernel_type, split)
@@ -167,7 +167,7 @@ class CudaKernelTest(unittest.TestCase):
         self._test_apply_feature_map(kernel_type)
 
     def _test_apply_feature_map(self, kernel_type):
-        print(f'\n...Test apply_feature_map...')
+        print('\n...Test apply_feature_map...')
         print(f'kernel_type: {kernel_type}')
         d: int = np.random.randint(low=5, high=12)
         n: int = np.random.randint(low=30000, high=35000)

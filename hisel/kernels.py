@@ -233,7 +233,7 @@ def _can_allocate(d: int, n: int, num_batches: int):
         print('Number of features and number of samples '
               'are too big to allocate the feature map.'
               'Reduce the number of samples and try again')
-        raise(e)
+        raise e
 
 
 def apply_feature_map(

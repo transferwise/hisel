@@ -19,8 +19,6 @@ class CategoricalSearchTest(unittest.TestCase):
         n = np.random.randint(low=4000, high=5000)
         h = np.random.randint(low=5, high=10)
         n_rel = 3
-        random_state = np.random.randint(low=0, high=100)
-
         x = np.random.randint(low=0, high=h, size=(n, d))
         a = np.random.permutation(np.concatenate((
             np.random.randint(low=-9, high=9, size=(n_rel, )),
@@ -54,7 +52,6 @@ class CategoricalSearchTest(unittest.TestCase):
 
     def _test_search(self, x, y, expected, random_state=None):
         n, d = x.shape
-        n_rel = len(expected)
         num_permutations = 15
         im_ratio = .01
         max_iter = 1
@@ -74,7 +71,6 @@ class CategoricalSearchTest(unittest.TestCase):
 
     def _test_select(self, x, y, expected, selected=None, random_state=None):
         n, d = x.shape
-        n_rel = len(expected)
         num_permutations = 20
         im_ratio = .01
         max_iter = 1
