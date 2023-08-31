@@ -1,4 +1,3 @@
-from typing import Optional
 import unittest
 import numpy as np
 from scipy.stats import special_ortho_group

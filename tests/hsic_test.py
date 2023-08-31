@@ -61,7 +61,7 @@ class HSICTest(unittest.TestCase):
         xkerneltype = KernelType.RBF
         num_permutations = 4
         im_ratio = .1
-        u = np.random.randint(low=-4, high=4,  size=(1, n_rel))
+        u = np.random.randint(low=-4, high=4, size=(1, n_rel))
         a_ = np.concatenate((
             u,
             np.zeros(shape=(1, dx - n_rel), dtype=int)
