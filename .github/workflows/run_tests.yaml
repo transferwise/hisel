@@ -33,7 +33,9 @@ jobs:
 
       - name: Installing hisel dependencies
         run: |
-          python3 -m pip install --upgrade pip wheel setuptools
+          python3 -m pip install --upgrade pip wheel setuptools virtualenv
+          virtualenv hisel-env
+          source hisel-env/bin/activate
           python3 -m pip install poetry
           python3 -m pip install pytest
           python3 -m pip install flake8
@@ -49,7 +51,7 @@ jobs:
 
       - name: Run hisel tests
         run: |
-          poetry install
+          source hisel-env/bin/activate
           poetry run pytest tests/kernel_test.py --disable-warnings
           poetry run pytest tests/lar_test.py --disable-warnings
           poetry run pytest tests/select_test.py --disable-warnings
