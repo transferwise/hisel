@@ -18,20 +18,11 @@ concurrency:
 jobs:
   hisel_tests:
     name: "hisel tests"
-    runs-on:
-      - self-hosted
-      - production
-      - xlarge
-    container: docker.tw.ee/actions_python3_9
+    runs-on: ubutnu-latest
+    strategy:
+      max-parallel: 5
 
     steps:
-      # GHA leaves mess behind. We need to clear those or our we end up having unexpected behaviours.
-      # REMOVE ME when A&T uses ephemeral runners
-      - name: Clear dirty runner
-        # Clear everything, both home and working directory
-        run: |
-          rm -rfv ~/* ./* || true
-
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -45,6 +36,13 @@ jobs:
           poetry lock
           poetry install
 
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count  --ignore=W503,W605 --max-complexity=32 --max-line-length=127 --statistics
+
       - name: Run hisel tests
         run: |
           source hisel-env/bin/activate
@@ -55,22 +53,3 @@ jobs:
           poetry run pytest tests/categorical_test.py --disable-warnings
           poetry run pytest tests/feature_selection_test.py --disable-warnings
 
-  run_trufflehog:
-    name: "Run trufflehog to catch credential leaks"
-    runs-on:
-      - self-hosted
-      - production
-      - medium
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --debug
