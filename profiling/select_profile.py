@@ -1,7 +1,7 @@
 import pstats
 from pstats import SortKey
 import cProfile
-from tests.select_test import SelectorTest
+from tests.select_test import SelectorTest  # NOQA
 import numpy as np
 from scipy.stats import special_ortho_group
 
