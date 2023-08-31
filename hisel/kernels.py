@@ -230,7 +230,8 @@ def _can_allocate(d: int, n: int, num_batches: int):
         zeros = np.zeros((num_batches, d, n, n))
         del zeros
     except np.core._exceptions._ArrayMemoryError as e:
-        print('Number of features and number of samples are too big to allocate the feature map.'
+        print('Number of features and number of samples '
+              'are too big to allocate the feature map.'
               'Reduce the number of samples and try again')
         raise(e)
 
@@ -245,7 +246,6 @@ def apply_feature_map(
         device: Device = Device.CPU,
 ) -> np.ndarray:
     d, n = x.shape
-    b = min(n, batch_size)
     batches = _make_batches(x, batch_size)
     num_of_batches = len(batches)
     # _can_allocate(d, n, num_of_batches)

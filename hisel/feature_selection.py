@@ -2,7 +2,7 @@ from typing import Optional, Union, List
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
-from hisel import hsic, select, categorical
+from hisel import select, categorical
 from hisel.kernels import Device
 from collections.abc import Mapping
 
