@@ -18,7 +18,7 @@ concurrency:
 jobs:
   hisel_tests:
     name: "hisel tests"
-    runs-on: ubutnu-latest
+    runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
 
