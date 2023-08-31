@@ -1,4 +1,4 @@
-name: Trufflehog tests
+name: trufflehog credential leaks
 
 on: 
   pull_request:
