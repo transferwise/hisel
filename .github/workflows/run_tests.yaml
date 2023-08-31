@@ -49,6 +49,7 @@ jobs:
 
       - name: Run hisel tests
         run: |
+          poetry install
           poetry run pytest tests/kernel_test.py --disable-warnings
           poetry run pytest tests/lar_test.py --disable-warnings
           poetry run pytest tests/select_test.py --disable-warnings
