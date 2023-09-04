@@ -58,7 +58,7 @@ class KernelTest(unittest.TestCase):
         )
 
     def test_rbf(self):
-        print(f'\n...Test RBF...')
+        print('\n...Test RBF...')
         kernel_type = kernels.KernelType.RBF
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -71,7 +71,7 @@ class KernelTest(unittest.TestCase):
         for i in range(d):
             k[i, :, :] = rbf(x[[i], :].T)
             g[i, :, :] = kernels.multivariate(
-                x[[i], :],  l, kernel_type)
+                x[[i], :], l, kernel_type)
 
         f = kernels.featwise(x, l, kernel_type)
         self.assertTrue(
@@ -86,7 +86,7 @@ class KernelTest(unittest.TestCase):
         )
 
     def test_delta(self):
-        print(f'\n...Test DELTA...')
+        print('\n...Test DELTA...')
         kernel_type = kernels.KernelType.DELTA
         d: int = np.random.randint(low=2, high=10)
         n: int = np.random.randint(low=1000, high=2000)
@@ -107,7 +107,7 @@ class KernelTest(unittest.TestCase):
         )
 
     def test_both(self):
-        print(f'\n...Test BOTH...')
+        print('\n...Test BOTH...')
         kernel_type = kernels.KernelType.BOTH
         d: int = np.random.randint(low=6, high=15)
         split: int = np.random.randint(low=2, high=d-1)
@@ -132,7 +132,7 @@ class KernelTest(unittest.TestCase):
         for i in range(split, d):
             k[i, :, :] = rbf(x[[i], :].T)
             g[i, :, :] = kernels.multivariate(
-                x[[i], :],  l, kernels.KernelType.RBF)
+                x[[i], :], l, kernels.KernelType.RBF)
 
         f = kernels.featwise(x, l, kernel_type, split)
         self.assertTrue(
@@ -148,7 +148,7 @@ class KernelTest(unittest.TestCase):
 
     @unittest.skipIf(not PYHSICLASSO_RECON, 'Skipping reconciliation with pyHSICLasso')
     def test_pyhsiclasso_kernel_recon_rbf(self):
-        print(f'\n...Recon with pyHSICLasso...')
+        print('\n...Recon with pyHSICLasso...')
         kernel_type = kernels.KernelType.RBF
         print(f'kernel_type: {kernel_type}')
         # Notice the two normalisation that pyHSICLasso uses
@@ -180,7 +180,7 @@ class KernelTest(unittest.TestCase):
 
     @unittest.skipIf(not PYHSICLASSO_RECON, 'Skipping reconciliation with pyHSICLasso')
     def test_pyhsiclasso_kernel_recon_delta(self):
-        print(f'\n...Recon with pyHSICLasso...')
+        print('\n...Recon with pyHSICLasso...')
         kernel_type = kernels.KernelType.DELTA
         print(f'kernel_type: {kernel_type}')
         d: int = np.random.randint(low=2, high=10)
@@ -286,7 +286,7 @@ class KernelTest(unittest.TestCase):
         self._test_apply_feature_map(kernel_type)
 
     def _test_apply_feature_map(self, kernel_type):
-        print(f'\n...Test apply_feature_map...')
+        print('\n...Test apply_feature_map...')
         print(f'kernel_type: {kernel_type}')
         d: int = np.random.randint(low=5, high=10)
         n: int = np.random.randint(low=25000, high=30000)

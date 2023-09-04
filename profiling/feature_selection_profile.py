@@ -1,7 +1,7 @@
 import pstats
 from pstats import SortKey
 import cProfile
-from tests.feature_selection_test import FeatSelTest
+from tests.feature_selection_test import FeatSelTest  # NOQA
 
 
 def main():
