@@ -3,7 +3,7 @@ name: trufflehog credential leaks
 on: 
   pull_request:
     push:
-      banches:
+      branches:
         - main
         - trunk
 
