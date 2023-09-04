@@ -1,7 +1,7 @@
 import pstats
 from pstats import SortKey
 import cProfile
-from tests.hsic_test import HSICTest
+from tests.hsic_test import HSICTest  # NOQA
 
 
 def main():

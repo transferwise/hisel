@@ -1,5 +1,5 @@
 # API
-from typing import List, Optional, Union, Tuple, Sequence
+from typing import List, Optional, Union, Tuple, Sequence, Callable
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np
@@ -243,7 +243,7 @@ class HSICSelector:
                    lasso_path: Optional[pd.DataFrame] = None,
                    ) -> List[str]:
         if lasso_path is None:
-            curve = self.regularization_curve(
+            _ = self.regularization_curve(
                 batch_size=batch_size,
                 minibatch_size=minibatch_size,
                 number_of_epochs=number_of_epochs,

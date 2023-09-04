@@ -1,6 +1,4 @@
 from typing import Optional
-from joblib import Parallel, delayed
-from enum import Enum
 import numpy as np
 from tqdm import tqdm
 from hisel.kernels import KernelType, Device
@@ -9,7 +7,7 @@ CUPY_AVAILABLE = True
 try:
     import cupy as cp
 except (ModuleNotFoundError, ImportError):
-    print(f'Could not import cupy!')
+    print('Could not import cupy!')
     cp = np
     CUPY_AVAILABLE = False
 
@@ -241,9 +239,7 @@ def apply_feature_map(
         device: Device = Device.GPU,
 ) -> np.ndarray:
     d, n = x.shape
-    b = min(n, batch_size)
     batches = _make_batches(x, batch_size)
-    num_of_batches = len(batches)
     partial_phis = [_run_batch(
         kernel_type,
         batch,

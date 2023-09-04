@@ -1,7 +1,7 @@
 import pstats
 from pstats import SortKey
 import cProfile
-from tests.kernel_test import KernelTest
+from tests.kernel_test import KernelTest  # NOQA
 
 
 def main():

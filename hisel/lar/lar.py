@@ -1,4 +1,5 @@
 #  Least angle regression
+from typing import List
 import numpy as np
 from scipy.sparse import lil_matrix
 
