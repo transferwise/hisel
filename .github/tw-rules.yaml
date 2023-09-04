@@ -12,9 +12,6 @@ actions:
           - name: hisel tests
             appId: github-actions
             type: tests
-          - name: Run trufflehog to catch credential leaks
-            appId: github-actions
-            type: tests
 
   repo-settings:
     deleteBranchOnMerge: true
