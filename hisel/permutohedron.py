@@ -1,4 +1,4 @@
-from typing import Optional, Set, Tuple, List
+from typing import Optional, Set, Tuple
 import numpy as np
 from scipy.stats import special_ortho_group
 

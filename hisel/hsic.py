@@ -2,7 +2,6 @@ from typing import Optional, List, Union, Set, Tuple
 from hisel import kernels
 from hisel.kernels import KernelType
 from hisel import permutohedron
-from scipy.stats import special_ortho_group
 import numpy as np
 from joblib import Parallel, delayed
 

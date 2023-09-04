@@ -1,7 +1,7 @@
-import pstat
+import pstats
 from pstats import SortKey
 import cProfile
-from tests.categorical_test import CategoricalSearchTest
+from tests.categorical_test import CategoricalSearchTest  # NOQA
 
 
 def main():

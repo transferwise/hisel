@@ -54,7 +54,7 @@ class PyHSICLasso:
         if parallel:
             result = Parallel(n_jobs=-1)([
                 delayed(PyHSICLasso.parallel_compute_kernel)(
-                    np.reshape(X[k, :], (1, n)),
+                    np.reshape(x[k, :], (1, n)),
                     'Gaussian',
                     k,
                     batch_size,
