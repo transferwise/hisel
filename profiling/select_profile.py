@@ -1,7 +1,7 @@
 import pstats
 from pstats import SortKey
 import cProfile
-from tests.select_test import SelectorTest
+from tests.select_test import SelectorTest  # NOQA
 import numpy as np
 from scipy.stats import special_ortho_group
 
@@ -133,7 +133,7 @@ def main():
     p.sort_stats(SortKey.CUMULATIVE).print_stats(
         'lar.py:', 20)
 
-    cProfile.runctx('profiler.run_on_gpu()',  globals=globals(),
+    cProfile.runctx('profiler.run_on_gpu()', globals=globals(),
                     locals=locals(), filename='gpu_select_profile')
     p_gpu = pstats.Stats('gpu_select_profile')
     p_gpu.sort_stats(SortKey.CUMULATIVE).print_stats(

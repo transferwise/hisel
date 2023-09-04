@@ -12,7 +12,7 @@ actions:
           - name: hisel tests
             appId: github-actions
             type: tests
-          - name: Run trufflehog to catch credential leaks
+          - name: trufflehog credential leaks
             appId: github-actions
             type: tests
 

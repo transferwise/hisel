@@ -16,7 +16,9 @@ def main():
     xdiscr = np.random.randint(low=0, high=2, size=(n, num_discr_features))
     xcont = np.random.uniform(size=(n, num_cont_features))
     x = np.concatenate((xdiscr, xcont), axis=1)
-    def fun(phase, t): return np.sin(phase * np.pi * t)
+
+    def fun(phase, t):
+        return np.sin(phase * np.pi * t)
     noise = np.random.normal(loc=0, scale=.05, size=(n, 1))
     # The discrete variable modulates the phase,
     # The continuous variable gives the evaluation point

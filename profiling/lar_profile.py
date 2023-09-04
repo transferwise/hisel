@@ -1,10 +1,7 @@
 import pstats
 from pstats import SortKey
 import cProfile
-import numpy as np
-from hisel import lar
-from scipy.stats import multivariate_normal
-from tests.lar_test import TestLar
+from tests.lar_test import TestLar  # NOQA
 
 
 def main():

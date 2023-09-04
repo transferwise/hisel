@@ -38,7 +38,7 @@ class FeatSelTest(unittest.TestCase):
         xdfdiscr = pd.DataFrame(
             xdiscr, columns=[f'd{i}' for i in range(d_discr)])
         expected_discr_names = sorted(
-            xdfdiscr.iloc[:,        expected_discr].columns.tolist())
+            xdfdiscr.iloc[:, expected_discr].columns.tolist())
         xdf = pd.concat([xdfcont, xdfdiscr], axis=1)
         ydf = pd.Series(y, name='y')
         results = feature_selection.select_features(xdf, ydf)
