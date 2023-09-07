@@ -95,11 +95,22 @@ and in
 
 ### Install via `pip`
 
-The package `hisel` is available from `arti`. You can install it via `pip`. 
-While on the Wise-VPN, in the environment where you intende to sue `hisel`, just do
+The package [hisel](https://pypi.org/project/hisel/) is available from [PyPi](https://pypi.org/). 
+You can install it via `pip`:
 ```
-pip install hisel --index-url=https://arti.tw.ee/artifactory/api/pypi/pypi-virtual/simple
+pip install hisel 
 ```
+
+If you want to install the extra support for GPU computations, you can do
+```
+pip install hisel[cudaXXX]
+```
+where `cudaXXX` is one of the following:
+`cuda102` if you have version 10.2 of cuda-toolkit;
+`cuda110` if you have version 11.0 of cuda-toolkit;
+`cuda111` if you have version 11.1 of cuda-toolkit;
+`cuda11x` if you have version 11.2 - 11.8 of cuda-toolkit;
+`cuda12x` if you have version 12.x of cuda-toolkit.
 
 ### Install from source
 
