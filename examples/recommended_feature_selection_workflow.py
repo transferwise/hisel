@@ -4,6 +4,13 @@ from arfs.feature_selection.allrelevant import Leshy
 from xgboost import XGBRegressor
 
 
+def print_results(selection, method):
+    print('\n\n##########################################################')
+    print(
+        f'The following features have been selected using {method}:')
+    print(f'{selection}')
+
+
 def main():
     df = pd.read_csv('mydata.csv')
     # df is expected with categorical variables already encoded as integers
@@ -13,7 +20,8 @@ def main():
     yser = df.iloc[:, -1]
 
     # Plain KSG-based selection
-    selection, scores = hisel.select.ksgmi(xdf, ydf, threshold=.01)
+    selection, scores = hisel.select.ksgmi(xdf, yser, threshold=.01)
+    print_results(selection, 'KSG')
 
     # HISEL with parameters specification
     categorical_search_parameters = hisel.feature_selection.SearchParameters(
@@ -34,6 +42,7 @@ def main():
     )
     results = hisel.feature_selection.select_features(
         xdf, yser, hsiclasso_parameters, categorical_search_parameters)
+    print_results(results.selected_features, 'HISEL')
 
     # Selection with Boruta
     n_estimators = 'auto'
@@ -54,6 +63,7 @@ def main():
     )
     leshy.fit(xdf, yser)
     leshy_selection = leshy.selected_features_
+    print_results(leshy_selection, 'BORUTA')
 
 
 if __name__ == '__main__':
